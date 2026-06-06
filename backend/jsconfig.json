@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "#config": ["./src/config.js"],
+      "#logger": ["./src/logger.js"],
+      "#db": ["./src/services/db.service.js"]
+    }
+  }
+}
