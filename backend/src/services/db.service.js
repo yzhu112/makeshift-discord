@@ -89,9 +89,7 @@ function getUserByUsername(username) {
 }
 
 function getUserById(id) {
-	return db
-		.prepare('SELECT id, username FROM users WHERE id = ?')
-		.get(id);
+	return db.prepare('SELECT id, username FROM users WHERE id = ?').get(id);
 }
 
 export default {
