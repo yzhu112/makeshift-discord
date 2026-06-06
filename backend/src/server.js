@@ -35,7 +35,6 @@ app.get('/', (req, res) => {
 	res.send('Hello World!');
 });
 
-
 app.use('/api', authRouter);
 
 app.get('/api/health', (req, res) => {
