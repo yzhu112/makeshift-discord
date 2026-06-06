@@ -6,7 +6,10 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "format": "biome check --write backend/src/ frontend/src/",
-    "prepare": "husky"
+    "prepare": "husky",
+    "backend:dev": "pnpm --filter backend dev",
+    "backend:start": "pnpm --filter backend start",
+    "db:query": "sqlite3 backend/data/voicechat.db"
   },
   "keywords": [],
   "author": "",

@@ -53,7 +53,6 @@ Single Oracle ARM VPS in Tokyo runs Caddy + Express + LiveKit + SQLite, all as s
 **Defer (NOT in MVP)**
 - Recording
 - Multiple rooms (one hardcoded room: `friends-chat`)
-- Signup flow (users added via CLI script)
 - Video (audio only)
 - Mobile apps
 - Test suite (manual testing only)
@@ -79,8 +78,6 @@ makeshift-dc/
 │   │   └── middleware/      (request logging, error handler, validate)
 │   ├── migrations/
 │   │   └── 001_init.sql
-│   ├── scripts/
-│   │   └── add-user.js
 │   └── data/                (gitignored: voicechat.db)
 ├── frontend/
 │   └── (Vite project, scaffolded in T15)
@@ -177,8 +174,8 @@ Doable across 4–6 weekends if you want. Each ticket is sized for 1–3h with b
 **Steps:**
 - `npm i dotenv`
 - Create `src/config.js` that calls `dotenv.config()` at top
-- Read env vars: `PORT`, `NODE_ENV`, `SESSION_SECRET`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `LIVEKIT_URL`, `DB_PATH`
-- Validate at startup: throw if `SESSION_SECRET` or LiveKit vars missing in production
+- Read env vars: `PORT`, `NODE_ENV`, `SESSION_SECRET`, `SIGNUP_SECRET`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `LIVEKIT_URL`, `DB_PATH`
+- Validate at startup: throw if `SESSION_SECRET`, `SIGNUP_SECRET`, or LiveKit vars missing in production
 - Export a single `config` object
 - Update `.env.example` to list every var
 
@@ -249,30 +246,9 @@ CREATE TABLE users (
 
 ---
 
-### T7. User-add CLI script + bcrypt (~1.5h)
-
-**Goal:** A command to add a user to the DB. You'll use this to onboard your friends.
-
-**Steps:**
-- `npm i bcrypt`
-- Create `scripts/add-user.js`
-- Take args: `node scripts/add-user.js <username> <password>` (or prompt interactively — your call)
-- Validate username is non-empty, alphanumeric or whatever rule you want
-- Hash password with bcrypt cost 12
-- Insert into `users`, fail gracefully if username already exists
-- Print success message including the user's ID
-
-**Hints:**
-- `bcrypt.hashSync(password, 12)` (sync version is fine for a CLI)
-- better-sqlite3 throws on UNIQUE constraint violation — catch and message nicely
-- For interactive prompting, `readline/promises` (Node built-in) or `prompts` package
-- Run: `node scripts/add-user.js alice supersecret`
-
-**Acceptance:** Running the script adds a user. Running it again with same username fails with a friendly error.
-
----
-
 ### T8. Session store with express-session + connect-sqlite3 (~1h)
+
+> **Execution note:** T8 comes before T7 in the build order. T7 (signup) auto-logs the user in by writing `req.session.userId`, which requires session middleware to exist.
 
 **Goal:** `req.session` available in every route, persisted across restarts.
 
@@ -292,6 +268,48 @@ CREATE TABLE users (
 - `secure: true` in dev breaks the cookie (no HTTPS on localhost) — that's why it's env-gated.
 
 **Acceptance:** Hit any endpoint with curl, observe `Set-Cookie: connect.sid=...; HttpOnly; SameSite=Lax` in response headers.
+
+---
+
+### T7. Signup endpoint (`POST /api/signup`) + bcrypt (~1.5h)
+
+> **Execution note:** Do this after T8 — signup auto-logs the user in by setting `req.session.userId`, so session middleware must already be wired.
+
+**Goal:** A public signup endpoint gated by a shared secret. Anyone with the secret can register; without it, signup is closed. Good enough for ~5 friends.
+
+**Steps:**
+- `npm i bcrypt`
+- Add `SIGNUP_SECRET` to `src/config.js` and `.env.example` (already added in T4 update).
+- Create `src/auth.js` (this is the same file used by T9–T10):
+  - `POST /api/signup`: body `{ username, password, signupSecret }`
+  - Inline validation for now (zod refactor lands in T11):
+    - All three fields present and strings, else 400
+    - `username` matches `/^[a-zA-Z0-9_]{1,32}$/`, else 400
+    - `password` length 8–128, else 400
+  - Constant-time compare `signupSecret` against `config.SIGNUP_SECRET` using `crypto.timingSafeEqual`. On mismatch → 401 `{error: 'Invalid signup secret'}`.
+  - `await bcrypt.hash(password, 12)` (async, since this is a request handler not a CLI).
+  - Insert into `users`. Catch `SQLITE_CONSTRAINT_UNIQUE` (`err.code === 'SQLITE_CONSTRAINT_UNIQUE'`) → 409 `{error: 'Username taken'}`.
+  - Auto-login on success: `req.session.userId = result.lastInsertRowid`. Respond 201 with `{id, username}`.
+- Mount `auth.js` routes in `server.js`.
+
+**Hints:**
+- Constant-time compare for the secret:
+  ```js
+  const a = Buffer.from(provided);
+  const b = Buffer.from(config.SIGNUP_SECRET);
+  const ok = a.length === b.length && crypto.timingSafeEqual(a, b);
+  ```
+  Buffers must be the same length or `timingSafeEqual` throws — hence the length check.
+- `bcrypt.hash` is async (returns a promise). `bcrypt.hashSync` exists but blocks the event loop for ~100ms at cost 12 — fine for a CLI, bad for a request handler.
+- Better-sqlite3 throws `SqliteError` with a `.code` property — match on `'SQLITE_CONSTRAINT_UNIQUE'`.
+- Don't log the password or the signup secret. Pino's request serializer (T3) already strips bodies, but the endpoint code shouldn't pull either into a log line either.
+- The signup secret is *not* per-user. It's a single shared string in `.env`. Rotate it by changing the env var and telling your friends the new one.
+
+**Acceptance:**
+- `curl -X POST /api/signup` with valid body and correct secret → 201 + `Set-Cookie` header.
+- Same request again → 409 (username taken).
+- Wrong secret → 401.
+- Missing/short password → 400.
 
 ---
 
@@ -345,6 +363,7 @@ CREATE TABLE users (
 - Create `src/middleware/validate.js`: a higher-order middleware that takes a zod schema and returns Express middleware
 - On parse failure: 400 with a sanitized error (don't echo the bad input back unfiltered)
 - Apply to `/api/login` with a schema like `{username: string min 1 max 64, password: string min 1 max 128}`
+- Apply to `/api/signup` (refactor the inline checks from T7 — schema is `{username, password, signupSecret}`)
 - Apply to other future endpoints as you add them
 
 **Hints:**

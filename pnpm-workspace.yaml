@@ -1,0 +1,9 @@
+packages:
+  - backend
+  - frontend
+
+allowBuilds:
+  better-sqlite3: true
+
+onlyBuiltDependencies:
+  - better-sqlite3

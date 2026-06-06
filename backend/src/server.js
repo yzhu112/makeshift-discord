@@ -2,6 +2,7 @@ import cookieParser from 'cookie-parser';
 import express from 'express';
 import pinoHttp from 'pino-http';
 import CONFIG from './config.js';
+import './db.js';
 import { logger } from './logger.js';
 
 if (CONFIG.NODE_ENV === 'production') {
