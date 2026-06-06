@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "NODE_ENV=development node --watch src/server.js | pino-pretty",
-    "start": "NODE_ENV=production node src/server.js"
+    "start": "NODE_ENV=production node src/server.js",
+    "db:query": "sqlite3 $INIT_CWD/../data/voicechat.db"
   },
   "keywords": [],
   "author": "",
@@ -25,6 +26,7 @@
     "#db": "./src/services/db.service.js"
   },
   "dependencies": {
+    "bcrypt": "^6.0.0",
     "better-sqlite3": "^12.10.0",
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.4.2",

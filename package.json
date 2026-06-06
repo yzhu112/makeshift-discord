@@ -9,7 +9,7 @@
     "prepare": "husky",
     "backend:dev": "pnpm --filter backend dev",
     "backend:start": "pnpm --filter backend start",
-    "db:query": "sqlite3 backend/data/voicechat.db"
+    "db:query": "sqlite3 $INIT_CWD/backend/data/voicechat.db"
   },
   "keywords": [],
   "author": "",
