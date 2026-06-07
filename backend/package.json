@@ -22,7 +22,7 @@
   "type": "module",
   "imports": {
     "#config": "./src/config.js",
-    "#logger": "./src/logger.js",
+    "#logger": "./src/middleware/logger.middleware.js",
     "#db": "./src/services/db.service.js"
   },
   "dependencies": {
@@ -31,8 +31,10 @@
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "livekit-server-sdk": "^2.15.4",
     "pino": "^10.3.1",
-    "pino-http": "^11.0.0"
+    "pino-http": "^11.0.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "pino-pretty": "^13.1.3"

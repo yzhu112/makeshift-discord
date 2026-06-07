@@ -4,7 +4,8 @@ import CONFIG from '#config';
 import db from '#db';
 import { requestLogger } from '#logger';
 import { authRouter } from './auth.js';
-import { sessionMiddleware } from './sessions.js';
+import { livekitRouter } from './livekit.js';
+import { sessionMiddleware } from './middleware/session.middleware.js';
 
 db.runMigrations();
 
@@ -36,6 +37,7 @@ app.get('/', (req, res) => {
 });
 
 app.use('/api', authRouter);
+app.use('/api', livekitRouter);
 
 app.get('/api/health', (req, res) => {
 	req.log.info('health check');
