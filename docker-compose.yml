@@ -1,0 +1,8 @@
+services:
+  livekit:
+    image: livekit/livekit-server
+    ports:
+      - "7880:7880"
+    volumes:
+      - ./infra/livekit.dev.yaml:/etc/livekit.yaml
+    command: --config /etc/livekit.yaml
