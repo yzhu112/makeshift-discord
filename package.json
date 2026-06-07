@@ -5,11 +5,13 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "format": "biome check --write backend/src/ frontend/src/",
+    "format": "biome check --write backend/src/",
     "prepare": "husky",
     "backend:dev": "pnpm --filter backend dev",
     "backend:start": "pnpm --filter backend start",
-    "db:query": "sqlite3 $INIT_CWD/backend/data/voicechat.db"
+    "db:query": "sqlite3 $INIT_CWD/backend/data/voicechat.db",
+    "livekit": "docker compose up",
+    "livekit:detach": "docker compose up -d"
   },
   "keywords": [],
   "author": "",

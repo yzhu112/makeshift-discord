@@ -5,6 +5,7 @@ packages:
 allowBuilds:
   bcrypt: true
   better-sqlite3: true
+  msw: false
 
 onlyBuiltDependencies:
   - better-sqlite3
