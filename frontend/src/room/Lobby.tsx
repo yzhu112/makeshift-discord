@@ -1,0 +1,73 @@
+import { Volume2 } from 'lucide-react';
+import type { User } from '@/api';
+import { useAuth } from '@/auth/AuthProvider';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+
+const ROOMS = [{ name: 'room' }];
+
+type Props = {
+  user: User;
+  onJoin: (roomName: string) => void;
+};
+
+export function Lobby({ user, onJoin }: Props) {
+  const { logout } = useAuth();
+
+  return (
+    <div className="flex min-h-svh items-center justify-center bg-background px-4 py-12">
+      <Card className="w-full max-w-md gap-0 overflow-hidden border-border/70 py-0 shadow-sm">
+        <CardHeader className="space-y-2 border-b bg-muted/40 px-6 py-7">
+          <p className="text-[10px] font-medium tracking-[0.22em] text-muted-foreground uppercase">
+            Makeshift&nbsp;·&nbsp;Voice
+          </p>
+          <CardTitle className="font-heading text-3xl font-normal italic tracking-tight">
+            Hey, {user.username}.
+          </CardTitle>
+        </CardHeader>
+
+        <CardContent className="px-6 pt-5 pb-2">
+          <p className="mb-3 text-[10px] font-medium tracking-[0.18em] text-muted-foreground uppercase">
+            Voice channels
+          </p>
+          <div className="space-y-0.5">
+            {ROOMS.map((room) => (
+              <div
+                key={room.name}
+                className="group flex items-center justify-between rounded-lg px-3 py-2.5 transition-colors hover:bg-muted/60"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Volume2 className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-sm font-medium">{room.name}</span>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => onJoin(room.name)}
+                  className="h-7 px-3 text-xs opacity-0 transition-opacity group-hover:opacity-100"
+                >
+                  Join
+                </Button>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+
+        <CardFooter className="justify-end px-6 pt-4 pb-6">
+          <button
+            type="button"
+            onClick={logout}
+            className="text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+          >
+            Log out
+          </button>
+        </CardFooter>
+      </Card>
+    </div>
+  );
+}

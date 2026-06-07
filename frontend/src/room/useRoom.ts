@@ -1,0 +1,127 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  ConnectionState,
+  type Participant,
+  type RemoteAudioTrack,
+  Room,
+  RoomEvent,
+  Track,
+} from 'livekit-client';
+
+const ROOM_OPTIONS = {
+  audioCaptureDefaults: {
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true,
+    channelCount: 1, // mono — tighter encoding, lower latency for voice
+  },
+  publishDefaults: {
+    audioPreset: { maxBitrate: 96_000 }, // 96 kbps Opus — Discord Nitro tier
+    dtx: false, // disabled: DTX causes clipping at start of speech and click artifacts
+    red: true,  // redundant audio frames: recovers from packet loss without re-request
+  },
+};
+
+export type RoomState = {
+  connectionState: ConnectionState;
+  participants: Participant[];
+  activeSpeakerIds: Set<string>;
+  isMuted: boolean;
+  audioTracks: RemoteAudioTrack[];
+};
+
+const DISCONNECTED: RoomState = {
+  connectionState: ConnectionState.Disconnected,
+  participants: [],
+  activeSpeakerIds: new Set(),
+  isMuted: false,
+  audioTracks: [],
+};
+
+export function useRoom() {
+  const roomRef = useRef<Room | null>(null);
+  const [state, setState] = useState<RoomState>(DISCONNECTED);
+
+  const connect = useCallback(async (url: string, token: string) => {
+    const room = new Room(ROOM_OPTIONS);
+    roomRef.current = room;
+
+    const getAll = (): Participant[] => [
+      room.localParticipant,
+      ...Array.from(room.remoteParticipants.values()),
+    ];
+
+    room
+      .on(RoomEvent.ConnectionStateChanged, (cs) =>
+        setState((s) => ({ ...s, connectionState: cs })),
+      )
+      .on(RoomEvent.ParticipantConnected, () =>
+        setState((s) => ({ ...s, participants: getAll() })),
+      )
+      .on(RoomEvent.ParticipantDisconnected, () =>
+        setState((s) => ({ ...s, participants: getAll() })),
+      )
+      .on(RoomEvent.ActiveSpeakersChanged, (speakers) =>
+        setState((s) => ({
+          ...s,
+          activeSpeakerIds: new Set(speakers.map((p) => p.identity)),
+        })),
+      )
+      .on(RoomEvent.TrackMuted, () =>
+        setState((s) => ({ ...s, participants: getAll() })),
+      )
+      .on(RoomEvent.TrackUnmuted, () =>
+        setState((s) => ({ ...s, participants: getAll() })),
+      )
+      .on(RoomEvent.TrackSubscribed, (track) => {
+        if (track.kind === Track.Kind.Audio) {
+          setState((s) => ({
+            ...s,
+            audioTracks: [...s.audioTracks, track as RemoteAudioTrack],
+          }));
+        }
+      })
+      .on(RoomEvent.TrackUnsubscribed, (track) => {
+        if (track.kind === Track.Kind.Audio) {
+          setState((s) => ({
+            ...s,
+            audioTracks: s.audioTracks.filter((t) => t !== track),
+          }));
+        }
+      });
+
+    await room.connect(url, token);
+    await room.localParticipant.setMicrophoneEnabled(true);
+
+    setState({
+      connectionState: room.state,
+      participants: getAll(),
+      activeSpeakerIds: new Set(),
+      isMuted: false,
+      audioTracks: [],
+    });
+  }, []);
+
+  const disconnect = useCallback(() => {
+    roomRef.current?.disconnect();
+    roomRef.current = null;
+    setState(DISCONNECTED);
+  }, []);
+
+  const toggleMute = useCallback(async () => {
+    const room = roomRef.current;
+    if (!room) return;
+    const enabled = room.localParticipant.isMicrophoneEnabled;
+    await room.localParticipant.setMicrophoneEnabled(!enabled);
+    setState((s) => ({ ...s, isMuted: enabled }));
+  }, []);
+
+  useEffect(
+    () => () => {
+      roomRef.current?.disconnect();
+    },
+    [],
+  );
+
+  return { state, connect, disconnect, toggleMute };
+}
