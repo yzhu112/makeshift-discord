@@ -29,3 +29,22 @@ pnpm install --prod
 # Build frontend
 cd frontend
 VITE_API_BASE_URL=/api pnpm build
+
+# Caddy config
+cat > /etc/caddy/Caddyfile <<'EOF'
+yuhong-zhu.xyz {
+    root * /opt/makeshift-discord/frontend/dist
+    try_files {path} /index.html
+    file_server
+
+    handle /api/* {
+        reverse_proxy localhost:3000
+    }
+
+    handle /livekit/* {
+        uri strip_prefix /livekit
+        reverse_proxy localhost:7880
+    }
+}
+EOF
+systemctl reload caddy
