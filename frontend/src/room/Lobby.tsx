@@ -1,7 +1,6 @@
 import { Volume2 } from 'lucide-react';
 import type { User } from '@/api';
 import { useAuth } from '@/auth/AuthProvider';
-import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -38,22 +37,15 @@ export function Lobby({ user, onJoin }: Props) {
           </p>
           <div className="space-y-0.5">
             {ROOMS.map((room) => (
-              <div
+              <button
                 key={room.name}
-                className="group flex items-center justify-between rounded-lg px-3 py-2.5 transition-colors hover:bg-muted/60"
+                type="button"
+                onClick={() => onJoin(room.name)}
+                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-muted/60 active:bg-muted"
               >
-                <div className="flex items-center gap-2.5">
-                  <Volume2 className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="text-sm font-medium">{room.name}</span>
-                </div>
-                <Button
-                  size="sm"
-                  onClick={() => onJoin(room.name)}
-                  className="h-7 px-3 text-xs opacity-0 transition-opacity group-hover:opacity-100"
-                >
-                  Join
-                </Button>
-              </div>
+                <Volume2 className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-sm font-medium">{room.name}</span>
+              </button>
             ))}
           </div>
         </CardContent>
