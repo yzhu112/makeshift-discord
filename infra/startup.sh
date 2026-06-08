@@ -43,10 +43,6 @@ ufw --force enable
 # Caddy config
 cat > /etc/caddy/Caddyfile <<'EOF'
 yuhong-zhu.xyz {
-    root * /opt/makeshift-discord/frontend/dist
-    try_files {path} /index.html
-    file_server
-
     handle /api/* {
         reverse_proxy localhost:3000
     }
@@ -54,6 +50,12 @@ yuhong-zhu.xyz {
     handle /livekit/* {
         uri strip_prefix /livekit
         reverse_proxy localhost:7880
+    }
+
+    handle {
+        root * /opt/makeshift-discord/frontend/dist
+        try_files {path} /index.html
+        file_server
     }
 }
 EOF
