@@ -22,11 +22,10 @@ curl -fsSL https://get.docker.com | sh
 # Clone repo
 git clone https://github.com/yzhu112/makeshift-discord.git /opt/makeshift-discord
 
-# Build frontend
-cd /opt/makeshift-discord/frontend
-pnpm install
-VITE_API_BASE_URL=/api pnpm build
-
-# Install backend
-cd /opt/makeshift-discord/backend
+# Install all deps (pnpm workspace installs both frontend + backend in one shot)
+cd /opt/makeshift-discord
 pnpm install --prod
+
+# Build frontend
+cd frontend
+VITE_API_BASE_URL=/api pnpm build
