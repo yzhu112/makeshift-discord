@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "format": "biome check --write backend/src/",
-    "prepare": "husky",
+    "prepare": "node -e \"if(process.env.NODE_ENV!=='production')require('child_process').execSync('husky',{stdio:'inherit'})\"",
     "backend:dev": "pnpm --filter backend dev",
     "backend:start": "pnpm --filter backend start",
     "db:query": "sqlite3 $INIT_CWD/backend/data/voicechat.db",
