@@ -30,6 +30,16 @@ pnpm install --prod
 cd frontend
 VITE_API_BASE_URL=/api pnpm build
 
+# Firewall
+ufw allow 22/tcp
+ufw allow 80/tcp
+ufw allow 443/tcp
+ufw allow 7881/tcp
+ufw allow 5349/tcp
+ufw allow 5349/udp
+ufw allow 50000:60000/udp
+ufw --force enable
+
 # Caddy config
 cat > /etc/caddy/Caddyfile <<'EOF'
 yuhong-zhu.xyz {
