@@ -45,9 +45,9 @@ export function RoomView({ user, roomName, onLeave }: Props) {
   }
 
   const isConnected = state.connectionState === ConnectionState.Connected;
+  const isReconnecting = state.connectionState === ConnectionState.Reconnecting;
   const isConnecting =
-    state.connectionState === ConnectionState.Connecting ||
-    state.connectionState === ConnectionState.Reconnecting;
+    state.connectionState === ConnectionState.Connecting || isReconnecting;
 
   const count = state.participants.length;
   const cols = count <= 1 ? 1 : count <= 4 ? 2 : count <= 9 ? 3 : 4;
@@ -73,7 +73,10 @@ export function RoomView({ user, roomName, onLeave }: Props) {
                   : 'bg-muted-foreground',
             )}
           />
-          {isConnecting && (
+          {isReconnecting && (
+            <span className="text-xs text-amber-500">Reconnecting…</span>
+          )}
+          {!isReconnecting && isConnecting && (
             <span className="text-xs text-muted-foreground">Connecting…</span>
           )}
           {error && <span className="text-xs text-destructive">{error}</span>}

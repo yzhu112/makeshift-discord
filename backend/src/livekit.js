@@ -25,7 +25,7 @@ livekitRouter.post(
 			CONFIG.LIVEKIT_API_SECRET,
 			{
 				identity: username,
-				ttl: '5m',
+				ttl: '8h',
 			},
 		);
 
