@@ -103,12 +103,19 @@ export function useRoom() {
     //   await pub.track.setProcessor(gate);
     // }
 
+    const audioTracks: RemoteAudioTrack[] = [];
+    for (const p of room.remoteParticipants.values()) {
+      for (const pub of p.audioTrackPublications.values()) {
+        if (pub.track) audioTracks.push(pub.track as RemoteAudioTrack);
+      }
+    }
+
     setState({
       connectionState: room.state,
       participants: getAll(),
       activeSpeakerIds: new Set(),
       isMuted: false,
-      audioTracks: [],
+      audioTracks,
     });
   }, []);
 
