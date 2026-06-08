@@ -7,18 +7,19 @@ import {
   RoomEvent,
   Track,
 } from 'livekit-client';
+// import { NoiseGate } from './noiseGate';
 
 const ROOM_OPTIONS = {
   audioCaptureDefaults: {
     echoCancellation: true,
     noiseSuppression: true,
-    autoGainControl: true,
-    channelCount: 1, // mono — tighter encoding, lower latency for voice
+    voiceIsolation: true,  // Chrome: isolates voice signal, drops non-voice background
+    channelCount: 1,
   },
   publishDefaults: {
-    audioPreset: { maxBitrate: 96_000 }, // 96 kbps Opus — Discord Nitro tier
-    dtx: false, // disabled: DTX causes clipping at start of speech and click artifacts
-    red: true,  // redundant audio frames: recovers from packet loss without re-request
+    audioPreset: { maxBitrate: 96_000 },
+    dtx: false,
+    red: true,
   },
 };
 
@@ -40,6 +41,7 @@ const DISCONNECTED: RoomState = {
 
 export function useRoom() {
   const roomRef = useRef<Room | null>(null);
+  // const noiseGateRef = useRef<NoiseGate | null>(null);
   const [state, setState] = useState<RoomState>(DISCONNECTED);
 
   const connect = useCallback(async (url: string, token: string) => {
@@ -93,6 +95,14 @@ export function useRoom() {
     await room.connect(url, token);
     await room.localParticipant.setMicrophoneEnabled(true);
 
+    // Noise gate disabled for now — needs more tuning
+    // const pub = room.localParticipant.getTrackPublication(Track.Source.Microphone);
+    // if (pub?.track) {
+    //   const gate = new NoiseGate();
+    //   noiseGateRef.current = gate;
+    //   await pub.track.setProcessor(gate);
+    // }
+
     setState({
       connectionState: room.state,
       participants: getAll(),
@@ -105,6 +115,7 @@ export function useRoom() {
   const disconnect = useCallback(() => {
     roomRef.current?.disconnect();
     roomRef.current = null;
+    // noiseGateRef.current = null;
     setState(DISCONNECTED);
   }, []);
 
