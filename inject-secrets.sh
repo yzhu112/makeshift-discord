@@ -40,9 +40,9 @@ rtc:
   port_range_start: 50000
   port_range_end: 60000
   use_external_ip: true
-turn:
-  enabled: true
-  tls_port: 5349
+#  turn:
+#  enabled: true
+#  tls_port: 5349
 keys:
   $LIVEKIT_API_KEY: $LIVEKIT_API_SECRET
 EOF

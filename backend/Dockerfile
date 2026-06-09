@@ -6,12 +6,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY backend/package.json ./backend/
-RUN NODE_ENV=production pnpm install --prod --frozen-lockfile --filter backend
+RUN NODE_ENV=production pnpm install --frozen-lockfile --filter backend
+RUN NODE_ENV=production pnpm deploy --filter=backend --prod --legacy /app/deploy
 
 FROM node:22-slim
 LABEL org.opencontainers.image.source=https://github.com/yzhu112/makeshift-discord
 WORKDIR /app
-COPY --from=build /app/backend/node_modules ./node_modules
+COPY --from=build /app/deploy/node_modules ./node_modules
 COPY backend/package.json ./package.json
 COPY backend/src ./src
 COPY backend/migrations ./migrations
