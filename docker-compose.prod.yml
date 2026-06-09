@@ -1,0 +1,28 @@
+services:
+  livekit:
+    image: livekit/livekit-server
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+      - ./infra/livekit.prod.yaml:/etc/livekit.yaml
+    command: --config /etc/livekit.yaml
+
+  backend:
+    image: ghcr.io/yzhu112/makeshift-discord-backend:latest
+    network_mode: host
+    restart: unless-stopped
+    env_file: ./backend/.env
+    volumes:
+      - ./data:/app/data
+
+  caddy:
+    image: ghcr.io/yzhu112/makeshift-discord-frontend:latest
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

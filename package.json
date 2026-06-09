@@ -9,6 +9,12 @@
     "prepare": "node -e \"if(process.env.NODE_ENV!=='production')require('child_process').execSync('husky',{stdio:'inherit'})\"",
     "backend:dev": "pnpm --filter backend dev",
     "backend:start": "pnpm --filter backend start",
+    "backend:image:build": "docker build -f backend/Dockerfile -t ghcr.io/yzhu112/makeshift-discord-backend:latest -t ghcr.io/yzhu112/makeshift-discord-backend:$(git rev-parse --short HEAD) .",
+    "backend:image:push": "docker push ghcr.io/yzhu112/makeshift-discord-backend --all-tags",
+    "backend:image:publish": "pnpm backend:image:build && pnpm backend:image:push",
+    "frontend:image:build": "docker build -f frontend/Dockerfile -t ghcr.io/yzhu112/makeshift-discord-frontend:latest -t ghcr.io/yzhu112/makeshift-discord-frontend:$(git rev-parse --short HEAD) .",
+    "frontend:image:push": "docker push ghcr.io/yzhu112/makeshift-discord-frontend --all-tags",
+    "frontend:image:publish": "pnpm frontend:image:build && pnpm frontend:image:push",
     "db:query": "sqlite3 $INIT_CWD/backend/data/voicechat.db",
     "livekit": "docker compose up",
     "livekit:detach": "docker compose up -d"

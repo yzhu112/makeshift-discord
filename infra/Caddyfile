@@ -1,0 +1,16 @@
+yuhong-zhu.xyz {
+	handle /api/* {
+		reverse_proxy localhost:3000
+	}
+
+	handle /livekit/* {
+		uri strip_prefix /livekit
+		reverse_proxy localhost:7880
+	}
+
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}
