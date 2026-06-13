@@ -23,7 +23,7 @@ cat > backend/.env <<EOF
 NODE_ENV=production
 PORT=3000
 SESSION_SECRET=$SESSION_SECRET
-SIGNUP_SECRET=$SIGNUP_SECRET
+INVITE_CODES=$INVITE_CODES
 LIVEKIT_API_KEY=$LIVEKIT_API_KEY
 LIVEKIT_API_SECRET=$LIVEKIT_API_SECRET
 LIVEKIT_URL=$LIVEKIT_URL
@@ -52,6 +52,9 @@ EOF
 # ============================================================
 docker compose -f docker-compose.prod.yml pull
 docker compose -f docker-compose.prod.yml up -d
+
+echo "Seeding database..."
+docker compose -f docker-compose.prod.yml exec backend node seed/seed.js
 
 echo ""
 echo "Stack is up."

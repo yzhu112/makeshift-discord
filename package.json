@@ -9,6 +9,7 @@
     "prepare": "node -e \"if(process.env.NODE_ENV!=='production')require('child_process').execSync('husky',{stdio:'inherit'})\"",
     "backend:dev": "pnpm --filter backend dev",
     "backend:start": "pnpm --filter backend start",
+    "db:seed": "pnpm --filter backend db:seed",
     "frontend:dev": "pnpm --filter frontend dev",
     "frontend:start": "pnpm --filter frontend preview",
     "backend:image:build": "docker build -f backend/Dockerfile -t ghcr.io/yzhu112/makeshift-discord-backend:latest -t ghcr.io/yzhu112/makeshift-discord-backend:$(git rev-parse --short HEAD) .",
@@ -24,13 +25,6 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "devEngines": {
-    "packageManager": {
-      "name": "pnpm",
-      "version": "^11.1.2",
-      "onFail": "download"
-    }
-  },
   "type": "module",
   "devDependencies": {
     "@biomejs/biome": "^2.4.16",

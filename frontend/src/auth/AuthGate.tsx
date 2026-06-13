@@ -23,10 +23,10 @@ export function AuthGate() {
 	const t = useT();
 
 	return (
-		<div className="flex min-h-svh items-center justify-center bg-background px-4 py-12">
+		<div className="flex min-h-svh flex-col bg-background sm:items-center sm:justify-center sm:px-4 sm:py-12">
 			<SettingsBar floating />
-			<Card className="w-full max-w-sm gap-0 overflow-hidden border-border/70 py-0 shadow-sm">
-				<CardHeader className="space-y-3 border-b bg-muted/40 px-6 py-7 text-center">
+			<Card className="flex w-full flex-1 flex-col gap-0 overflow-hidden rounded-none py-0 shadow-none ring-0 sm:max-w-sm sm:flex-none sm:rounded-xl sm:shadow-sm sm:ring-1">
+				<CardHeader className="space-y-3 border-b bg-muted/40 px-6 pb-7 pt-[max(env(safe-area-inset-top),1.75rem)] text-center sm:py-7">
 					<p className="text-[10px] font-medium tracking-[0.22em] text-muted-foreground uppercase">
 						{t('auth.brand')}
 					</p>
@@ -42,11 +42,11 @@ export function AuthGate() {
 					</CardDescription>
 				</CardHeader>
 
-				<CardContent className="px-6 pt-6 pb-2">
+				<CardContent className="flex-1 px-6 pt-6 pb-2 sm:flex-none">
 					{mode === 'login' ? <LoginForm /> : <SignupForm />}
 				</CardContent>
 
-				<CardFooter className="justify-center px-6 pt-2 pb-6">
+				<CardFooter className="justify-center px-6 pt-2 pb-[max(env(safe-area-inset-bottom),1.5rem)] sm:pb-6">
 					<button
 						type="button"
 						onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
@@ -89,6 +89,7 @@ function LoginForm() {
 				<Label htmlFor="login-username">{t('auth.field.username')}</Label>
 				<Input
 					id="login-username"
+					className="max-sm:h-12"
 					value={username}
 					onChange={(e) => setUsername(e.target.value)}
 					autoComplete="username"
@@ -100,6 +101,7 @@ function LoginForm() {
 				<Input
 					id="login-password"
 					type="password"
+					className="max-sm:h-12"
 					value={password}
 					onChange={(e) => setPassword(e.target.value)}
 					autoComplete="current-password"
@@ -113,7 +115,7 @@ function LoginForm() {
 			)}
 			<Button
 				type="submit"
-				className="h-10 w-full text-sm"
+				className="h-12 w-full text-sm sm:h-10"
 				disabled={submitting}
 			>
 				{submitting ? t('auth.action.login.loading') : t('auth.action.login')}
@@ -150,6 +152,7 @@ function SignupForm() {
 				<Label htmlFor="signup-username">{t('auth.field.username')}</Label>
 				<Input
 					id="signup-username"
+					className="max-sm:h-12"
 					value={username}
 					onChange={(e) => setUsername(e.target.value)}
 					autoComplete="username"
@@ -161,6 +164,7 @@ function SignupForm() {
 				<Input
 					id="signup-password"
 					type="password"
+					className="max-sm:h-12"
 					value={password}
 					onChange={(e) => setPassword(e.target.value)}
 					autoComplete="new-password"
@@ -171,6 +175,7 @@ function SignupForm() {
 				<Label htmlFor="signup-invite">{t('auth.field.invite')}</Label>
 				<Input
 					id="signup-invite"
+					className="max-sm:h-12"
 					value={inviteCode}
 					onChange={(e) => setInviteCode(e.target.value)}
 					autoComplete="off"
@@ -184,7 +189,7 @@ function SignupForm() {
 			)}
 			<Button
 				type="submit"
-				className="h-10 w-full text-sm"
+				className="h-12 w-full text-sm sm:h-10"
 				disabled={submitting}
 			>
 				{submitting ? t('auth.action.signup.loading') : t('auth.action.signup')}

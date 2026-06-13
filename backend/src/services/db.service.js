@@ -92,6 +92,39 @@ function getUserById(id) {
 	return db.prepare('SELECT id, username FROM users WHERE id = ?').get(id);
 }
 
+// ------------------------------------ User ------------------------------------
+
+function createRoom(roomName, code) {
+	db.prepare('INSERT INTO rooms (name, code, created_at) VALUES (?, ?, ?)').run(
+		roomName,
+		code,
+		Date.now(),
+	);
+}
+
+function getRoomCode(roomName) {
+	return db
+		.prepare('SELECT name, code FROM rooms WHERE name = ?')
+		.get(roomName);
+}
+
+function joinRoom(userId, roomName) {
+	db.prepare(
+		'INSERT INTO room_memberships (room_name, user_id, joined_at) VALUES (?, ?, ?)',
+	).run(roomName, userId, Date.now());
+}
+
+function getRoomMemberships(userId) {
+	return db
+		.prepare(
+			`SELECT r.name, r.code
+       FROM room_memberships m
+       JOIN rooms r ON r.name = m.room_name
+       WHERE m.user_id = ?`,
+		)
+		.all(userId);
+}
+
 export default {
 	runMigrations,
 	getSessionBySid,
@@ -101,4 +134,8 @@ export default {
 	createUser,
 	getUserByUsername,
 	getUserById,
+	createRoom,
+	getRoomCode,
+	joinRoom,
+	getRoomMemberships,
 };

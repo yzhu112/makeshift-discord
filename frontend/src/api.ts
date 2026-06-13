@@ -1,4 +1,5 @@
-export type User = { id: number; username: string };
+export type Room = { name: string; code: string | null };
+export type User = { id: number; username: string; rooms: Room[] };
 
 export class ApiError extends Error {
 	status: number;

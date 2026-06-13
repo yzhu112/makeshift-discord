@@ -5,6 +5,7 @@ import CONFIG from '#config';
 import db from '#db';
 import { requireAuth } from './auth.js';
 import { validate } from './middleware/validate.js';
+import { requireRoomMembership } from './room.js';
 
 export const livekitRouter = Router();
 
@@ -15,6 +16,7 @@ const LivekitTokenSchema = z.object({
 livekitRouter.post(
 	'/livekit-token',
 	requireAuth,
+	requireRoomMembership,
 	validate(LivekitTokenSchema),
 	async (req, res) => {
 		const { roomName } = req.body;

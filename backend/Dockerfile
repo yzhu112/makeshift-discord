@@ -15,6 +15,7 @@ WORKDIR /app
 COPY --from=build /app/deploy/node_modules ./node_modules
 COPY backend/package.json ./package.json
 COPY backend/src ./src
+COPY backend/seed ./seed
 COPY backend/migrations ./migrations
 ENV NODE_ENV=production
 ENV PORT=3000

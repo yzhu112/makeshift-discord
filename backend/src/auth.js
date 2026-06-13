@@ -1,5 +1,6 @@
 import bcrypt from 'bcrypt';
 import { Router } from 'express';
+import CONFIG from '#config';
 import db from '#db';
 import { LoginSchema, SignupSchema, validate } from './middleware/validate.js';
 import { createSession, destroySession } from './services/session.service.js';
@@ -15,18 +16,24 @@ export const authRouter = Router();
 
 authRouter.post('/signup', validate(SignupSchema), async (req, res) => {
 	const { username, password, inviteCode } = req.body;
-	// hash pwd
+
+	const roomName = CONFIG.INVITE_CODES[inviteCode];
+	if (!roomName) return res.status(401).json({ error: 'Invalid invite code' });
+
 	const hash = await bcrypt.hash(password, 12);
+	let user;
 	try {
-		const user = db.createUser(username, hash);
+		user = db.createUser(username, hash);
 		createSession(user.id, res);
-		return res.status(201).json(user);
 	} catch (err) {
 		if (err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
 			return res.status(409).json({ error: 'Username taken' });
 		}
-		throw err; // unknown error — let your error middleware handle it
+		throw err;
 	}
+
+	db.joinRoom(user.id, roomName);
+	return res.status(201).json(user);
 });
 
 authRouter.post('/login', validate(LoginSchema), async (req, res) => {
@@ -57,5 +64,6 @@ authRouter.get('/me', requireAuth, (req, res) => {
 		destroySession(req, res);
 		return res.status(401).json({ error: 'Unauthenticated' });
 	}
-	res.status(200).json(user);
+	const rooms = db.getRoomMemberships(req.session.userId);
+	res.status(200).json({ ...user, rooms });
 });

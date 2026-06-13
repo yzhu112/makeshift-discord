@@ -6,13 +6,14 @@ import { requestLogger } from '#logger';
 import { authRouter } from './auth.js';
 import { livekitRouter } from './livekit.js';
 import { sessionMiddleware } from './middleware/session.middleware.js';
+import { roomRouter } from './room.js';
 
 db.runMigrations();
 
 if (CONFIG.NODE_ENV === 'production') {
 	const CRITICAL_VARS = [
 		'SESSION_SECRET',
-		'SIGNUP_SECRET',
+		'INVITE_CODES',
 		'LIVEKIT_URL',
 		'LIVEKIT_API_SECRET',
 		'LIVEKIT_API_KEY',
@@ -38,6 +39,7 @@ app.get('/', (req, res) => {
 
 app.use('/api', authRouter);
 app.use('/api', livekitRouter);
+app.use('/api', roomRouter);
 
 app.get('/api/health', (req, res) => {
 	req.log.info('health check');

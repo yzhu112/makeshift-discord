@@ -23,12 +23,20 @@ const ROOM_OPTIONS = {
   },
 };
 
+export type ChatMessage = {
+  id: string;
+  sender: string;
+  text: string;
+  ts: number;
+};
+
 export type RoomState = {
   connectionState: ConnectionState;
   participants: Participant[];
   activeSpeakerIds: Set<string>;
   isMuted: boolean;
   audioTracks: RemoteAudioTrack[];
+  messages: ChatMessage[];
 };
 
 const DISCONNECTED: RoomState = {
@@ -37,7 +45,17 @@ const DISCONNECTED: RoomState = {
   activeSpeakerIds: new Set(),
   isMuted: false,
   audioTracks: [],
+  messages: [],
 };
+
+// Chat travels over LiveKit reliable data packets. Those must stay under
+// ~15 KiB including LiveKit's own framing, so we cap the encoded payload a
+// little below that. Measured in UTF-8 bytes so non-Latin text counts right.
+const CHAT_TOPIC = 'chat';
+const MAX_CHAT_BYTES = 13_000;
+const RECEIVED_TEXT_CLAMP = 4_000; // defensive cap on untrusted incoming text
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
 
 export function useRoom() {
   const roomRef = useRef<Room | null>(null);
@@ -90,6 +108,28 @@ export function useRoom() {
             audioTracks: s.audioTracks.filter((t) => t !== track),
           }));
         }
+      })
+      .on(RoomEvent.DataReceived, (payload, participant, _kind, topic) => {
+        if (topic !== CHAT_TOPIC) return;
+        let text: unknown;
+        try {
+          text = (JSON.parse(decoder.decode(payload)) as { text?: unknown })
+            .text;
+        } catch {
+          return; // ignore malformed packets
+        }
+        if (typeof text !== 'string') return;
+        // Trust LiveKit's authenticated identity for the sender, not the
+        // payload — clamp the untrusted text defensively.
+        const clean = text.slice(0, RECEIVED_TEXT_CLAMP);
+        if (!clean) return;
+        const msg: ChatMessage = {
+          id: crypto.randomUUID(),
+          sender: participant?.identity ?? '?',
+          text: clean,
+          ts: Date.now(),
+        };
+        setState((s) => ({ ...s, messages: [...s.messages, msg] }));
       });
 
     await room.connect(url, token);
@@ -110,13 +150,14 @@ export function useRoom() {
       }
     }
 
-    setState({
+    setState((s) => ({
+      ...s,
       connectionState: room.state,
       participants: getAll(),
       activeSpeakerIds: new Set(),
       isMuted: false,
       audioTracks,
-    });
+    }));
   }, []);
 
   const disconnect = useCallback(() => {
@@ -134,6 +175,29 @@ export function useRoom() {
     setState((s) => ({ ...s, isMuted: enabled }));
   }, []);
 
+  const sendMessage = useCallback(async (text: string) => {
+    const room = roomRef.current;
+    const trimmed = text.trim();
+    if (!room || !trimmed) return;
+
+    const payload = encoder.encode(JSON.stringify({ text: trimmed }));
+    if (payload.length > MAX_CHAT_BYTES) {
+      throw new Error('message too large');
+    }
+    await room.localParticipant.publishData(payload, {
+      reliable: true,
+      topic: CHAT_TOPIC,
+    });
+    // LiveKit doesn't deliver our own data back to us — reflect it locally.
+    const msg: ChatMessage = {
+      id: crypto.randomUUID(),
+      sender: room.localParticipant.identity,
+      text: trimmed,
+      ts: Date.now(),
+    };
+    setState((s) => ({ ...s, messages: [...s.messages, msg] }));
+  }, []);
+
   useEffect(
     () => () => {
       roomRef.current?.disconnect();
@@ -141,5 +205,5 @@ export function useRoom() {
     [],
   );
 
-  return { state, connect, disconnect, toggleMute };
+  return { state, connect, disconnect, toggleMute, sendMessage };
 }

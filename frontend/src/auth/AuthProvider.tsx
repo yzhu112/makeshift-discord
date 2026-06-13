@@ -20,6 +20,7 @@ type AuthContextValue = {
 	signup: (input: SignupInput) => Promise<void>;
 	login: (input: LoginInput) => Promise<void>;
 	logout: () => Promise<void>;
+	refresh: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -36,22 +37,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	const value: AuthContextValue = {
 		state,
 		signup: async (input) => {
-			const user = await api<User>('/api/signup', {
+			await api('/api/signup', {
 				method: 'POST',
 				body: JSON.stringify(input),
 			});
+			// Re-fetch /me so we get the full user incl. the room signup auto-joined.
+			const user = await api<User>('/api/me');
 			setState({ status: 'authed', user });
 		},
 		login: async (input) => {
-			const user = await api<User>('/api/login', {
+			await api('/api/login', {
 				method: 'POST',
 				body: JSON.stringify(input),
 			});
+			const user = await api<User>('/api/me');
 			setState({ status: 'authed', user });
 		},
 		logout: async () => {
 			await api<{ ok: true }>('/api/logout', { method: 'POST' });
 			setState({ status: 'unauthed' });
+		},
+		refresh: async () => {
+			const user = await api<User>('/api/me');
+			setState({ status: 'authed', user });
 		},
 	};
 

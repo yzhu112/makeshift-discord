@@ -7,6 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "NODE_ENV=development node --watch src/server.js | pino-pretty",
     "start": "NODE_ENV=production node src/server.js",
+    "db:seed": "node seed/seed.js",
     "db:query": "sqlite3 $INIT_CWD/../data/voicechat.db"
   },
   "keywords": [],
