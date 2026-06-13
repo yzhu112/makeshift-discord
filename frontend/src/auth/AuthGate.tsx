@@ -2,6 +2,7 @@ import type { FormEvent } from 'react';
 import { useState } from 'react';
 import { ApiError } from '@/api';
 import { useAuth } from '@/auth/AuthProvider';
+import { SettingsBar } from '@/components/SettingsBar';
 import { Button } from '@/components/ui/button';
 import {
 	Card,
@@ -13,18 +14,21 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useT } from '@/i18n/I18nProvider';
 
 type Mode = 'login' | 'signup';
 
 export function AuthGate() {
 	const [mode, setMode] = useState<Mode>('login');
+	const t = useT();
 
 	return (
 		<div className="flex min-h-svh items-center justify-center bg-background px-4 py-12">
+			<SettingsBar floating />
 			<Card className="w-full max-w-sm gap-0 overflow-hidden border-border/70 py-0 shadow-sm">
 				<CardHeader className="space-y-3 border-b bg-muted/40 px-6 py-7 text-center">
 					<p className="text-[10px] font-medium tracking-[0.22em] text-muted-foreground uppercase">
-						Makeshift&nbsp;·&nbsp;Voice
+						{t('auth.brand')}
 					</p>
 					<div className="flex justify-center pt-1">
 						<CardTitle className="flex size-20 items-center justify-center rounded-full bg-primary font-heading text-2xl font-normal italic text-primary-foreground shadow-sm">
@@ -33,8 +37,8 @@ export function AuthGate() {
 					</div>
 					<CardDescription className="text-sm">
 						{mode === 'login'
-							? 'Welcome back to the room.'
-							: 'Step into the room.'}
+							? t('auth.welcome.login')
+							: t('auth.welcome.signup')}
 					</CardDescription>
 				</CardHeader>
 
@@ -49,8 +53,8 @@ export function AuthGate() {
 						className="text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
 					>
 						{mode === 'login'
-							? 'No account yet? Sign up'
-							: 'Already inside? Log in'}
+							? t('auth.switch.toSignup')
+							: t('auth.switch.toLogin')}
 					</button>
 				</CardFooter>
 			</Card>
@@ -60,6 +64,7 @@ export function AuthGate() {
 
 function LoginForm() {
 	const { login } = useAuth();
+	const t = useT();
 	const [username, setUsername] = useState('');
 	const [password, setPassword] = useState('');
 	const [error, setError] = useState<string | null>(null);
@@ -72,7 +77,7 @@ function LoginForm() {
 		try {
 			await login({ username, password });
 		} catch (err) {
-			setError(err instanceof ApiError ? err.message : 'Login failed');
+			setError(err instanceof ApiError ? err.message : t('auth.error.login'));
 		} finally {
 			setSubmitting(false);
 		}
@@ -81,7 +86,7 @@ function LoginForm() {
 	return (
 		<form onSubmit={onSubmit} className="space-y-5">
 			<div className="space-y-2">
-				<Label htmlFor="login-username">Username</Label>
+				<Label htmlFor="login-username">{t('auth.field.username')}</Label>
 				<Input
 					id="login-username"
 					value={username}
@@ -91,7 +96,7 @@ function LoginForm() {
 				/>
 			</div>
 			<div className="space-y-2">
-				<Label htmlFor="login-password">Password</Label>
+				<Label htmlFor="login-password">{t('auth.field.password')}</Label>
 				<Input
 					id="login-password"
 					type="password"
@@ -111,7 +116,7 @@ function LoginForm() {
 				className="h-10 w-full text-sm"
 				disabled={submitting}
 			>
-				{submitting ? 'Logging in…' : 'Log in'}
+				{submitting ? t('auth.action.login.loading') : t('auth.action.login')}
 			</Button>
 		</form>
 	);
@@ -119,6 +124,7 @@ function LoginForm() {
 
 function SignupForm() {
 	const { signup } = useAuth();
+	const t = useT();
 	const [username, setUsername] = useState('');
 	const [password, setPassword] = useState('');
 	const [inviteCode, setInviteCode] = useState('');
@@ -132,7 +138,7 @@ function SignupForm() {
 		try {
 			await signup({ username, password, inviteCode });
 		} catch (err) {
-			setError(err instanceof ApiError ? err.message : 'Signup failed');
+			setError(err instanceof ApiError ? err.message : t('auth.error.signup'));
 		} finally {
 			setSubmitting(false);
 		}
@@ -141,7 +147,7 @@ function SignupForm() {
 	return (
 		<form onSubmit={onSubmit} className="space-y-5">
 			<div className="space-y-2">
-				<Label htmlFor="signup-username">Username</Label>
+				<Label htmlFor="signup-username">{t('auth.field.username')}</Label>
 				<Input
 					id="signup-username"
 					value={username}
@@ -151,7 +157,7 @@ function SignupForm() {
 				/>
 			</div>
 			<div className="space-y-2">
-				<Label htmlFor="signup-password">Password</Label>
+				<Label htmlFor="signup-password">{t('auth.field.password')}</Label>
 				<Input
 					id="signup-password"
 					type="password"
@@ -162,7 +168,7 @@ function SignupForm() {
 				/>
 			</div>
 			<div className="space-y-2">
-				<Label htmlFor="signup-invite">Invite code</Label>
+				<Label htmlFor="signup-invite">{t('auth.field.invite')}</Label>
 				<Input
 					id="signup-invite"
 					value={inviteCode}
@@ -181,7 +187,7 @@ function SignupForm() {
 				className="h-10 w-full text-sm"
 				disabled={submitting}
 			>
-				{submitting ? 'Creating…' : 'Create account'}
+				{submitting ? t('auth.action.signup.loading') : t('auth.action.signup')}
 			</Button>
 		</form>
 	);

@@ -1,6 +1,7 @@
 import { Volume2 } from 'lucide-react';
 import type { User } from '@/api';
 import { useAuth } from '@/auth/AuthProvider';
+import { SettingsBar } from '@/components/SettingsBar';
 import {
   Card,
   CardContent,
@@ -8,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { useT } from '@/i18n/I18nProvider';
 
 const ROOMS = [{ name: 'room' }];
 
@@ -18,22 +20,24 @@ type Props = {
 
 export function Lobby({ user, onJoin }: Props) {
   const { logout } = useAuth();
+  const t = useT();
 
   return (
     <div className="flex min-h-svh items-center justify-center bg-background px-4 py-12">
+      <SettingsBar floating />
       <Card className="w-full max-w-md gap-0 overflow-hidden border-border/70 py-0 shadow-sm">
         <CardHeader className="space-y-2 border-b bg-muted/40 px-6 py-7">
           <p className="text-[10px] font-medium tracking-[0.22em] text-muted-foreground uppercase">
-            Makeshift&nbsp;·&nbsp;Voice
+            {t('auth.brand')}
           </p>
           <CardTitle className="font-heading text-3xl font-normal italic tracking-tight">
-            Hey, {user.username}.
+            {t('lobby.greeting', { name: user.username })}
           </CardTitle>
         </CardHeader>
 
         <CardContent className="px-6 pt-5 pb-2">
           <p className="mb-3 text-[10px] font-medium tracking-[0.18em] text-muted-foreground uppercase">
-            Voice channels
+            {t('lobby.channels')}
           </p>
           <div className="space-y-0.5">
             {ROOMS.map((room) => (
@@ -56,7 +60,7 @@ export function Lobby({ user, onJoin }: Props) {
             onClick={logout}
             className="text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
           >
-            Log out
+            {t('lobby.logout')}
           </button>
         </CardFooter>
       </Card>

@@ -9,6 +9,8 @@
     "prepare": "node -e \"if(process.env.NODE_ENV!=='production')require('child_process').execSync('husky',{stdio:'inherit'})\"",
     "backend:dev": "pnpm --filter backend dev",
     "backend:start": "pnpm --filter backend start",
+    "frontend:dev": "pnpm --filter frontend dev",
+    "frontend:start": "pnpm --filter frontend preview",
     "backend:image:build": "docker build -f backend/Dockerfile -t ghcr.io/yzhu112/makeshift-discord-backend:latest -t ghcr.io/yzhu112/makeshift-discord-backend:$(git rev-parse --short HEAD) .",
     "backend:image:push": "docker push ghcr.io/yzhu112/makeshift-discord-backend --all-tags",
     "backend:image:publish": "pnpm backend:image:build && pnpm backend:image:push",

@@ -4,7 +4,9 @@ import { ConnectionState } from 'livekit-client';
 import { Mic, MicOff, PhoneOff } from 'lucide-react';
 import { ApiError, api } from '@/api';
 import type { User } from '@/api';
+import { SettingsBar } from '@/components/SettingsBar';
 import { Button } from '@/components/ui/button';
+import { useT } from '@/i18n/I18nProvider';
 import { cn } from '@/lib/utils';
 import { useRoom } from './useRoom';
 
@@ -16,6 +18,7 @@ type Props = {
 
 export function RoomView({ user, roomName, onLeave }: Props) {
   const { state, connect, disconnect, toggleMute } = useRoom();
+  const t = useT();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -30,7 +33,7 @@ export function RoomView({ user, roomName, onLeave }: Props) {
       })
       .catch((err) => {
         if (!cancelled)
-          setError(err instanceof ApiError ? err.message : 'Failed to join room');
+          setError(err instanceof ApiError ? err.message : t('room.error.join'));
       });
 
     return () => {
@@ -74,16 +77,19 @@ export function RoomView({ user, roomName, onLeave }: Props) {
             )}
           />
           {isReconnecting && (
-            <span className="text-xs text-amber-500">Reconnecting…</span>
+            <span className="text-xs text-amber-500">{t('room.status.reconnecting')}</span>
           )}
           {!isReconnecting && isConnecting && (
-            <span className="text-xs text-muted-foreground">Connecting…</span>
+            <span className="text-xs text-muted-foreground">{t('room.status.connecting')}</span>
           )}
           {error && <span className="text-xs text-destructive">{error}</span>}
         </div>
-        <span className="flex h-6 items-center rounded-full bg-muted px-2.5 text-[11px] font-medium text-muted-foreground">
-          {user.username}
-        </span>
+        <div className="flex items-center gap-2">
+          <SettingsBar />
+          <span className="flex h-6 items-center rounded-full bg-muted px-2.5 text-[11px] font-medium text-muted-foreground">
+            {user.username}
+          </span>
+        </div>
       </header>
 
       {/* Body */}
@@ -93,7 +99,11 @@ export function RoomView({ user, roomName, onLeave }: Props) {
           {count === 0 ? (
             <div className="flex flex-1 items-center justify-center">
               <p className="text-sm text-muted-foreground">
-                {isConnecting ? 'Joining room…' : error ? 'Could not connect.' : ''}
+                {isConnecting
+                  ? t('room.status.joining')
+                  : error
+                    ? t('room.status.cannotConnect')
+                    : ''}
               </p>
             </div>
           ) : (
@@ -115,6 +125,7 @@ export function RoomView({ user, roomName, onLeave }: Props) {
                     isLocal={isLocal}
                     isSpeaking={isSpeaking}
                     isMuted={isMuted}
+                    youLabel={t('room.you')}
                   />
                 );
               })}
@@ -126,7 +137,7 @@ export function RoomView({ user, roomName, onLeave }: Props) {
         <aside className="flex w-52 shrink-0 flex-col border-l">
           <div className="px-4 py-3">
             <p className="text-[10px] font-medium tracking-[0.18em] text-muted-foreground uppercase">
-              In room — {count}
+              {t('room.sidebar.inRoom', { count })}
             </p>
           </div>
           <div className="flex-1 overflow-y-auto px-2 pb-3">
@@ -141,6 +152,7 @@ export function RoomView({ user, roomName, onLeave }: Props) {
                   isLocal={isLocal}
                   isSpeaking={isSpeaking}
                   isMuted={isMuted}
+                  youLabel={t('room.you')}
                 />
               );
             })}
@@ -155,7 +167,7 @@ export function RoomView({ user, roomName, onLeave }: Props) {
           size="icon"
           onClick={toggleMute}
           className="h-9 w-9 rounded-full"
-          title={state.isMuted ? 'Unmute' : 'Mute'}
+          title={state.isMuted ? t('room.action.unmute') : t('room.action.mute')}
         >
           {state.isMuted ? (
             <MicOff className="h-3.5 w-3.5" />
@@ -168,7 +180,7 @@ export function RoomView({ user, roomName, onLeave }: Props) {
           size="icon"
           onClick={handleLeave}
           className="h-9 w-9 rounded-full"
-          title="Leave"
+          title={t('room.action.leave')}
         >
           <PhoneOff className="h-3.5 w-3.5" />
         </Button>
@@ -182,11 +194,13 @@ function ParticipantTile({
   isLocal,
   isSpeaking,
   isMuted,
+  youLabel,
 }: {
   participant: Participant;
   isLocal: boolean;
   isSpeaking: boolean;
   isMuted: boolean;
+  youLabel: string;
 }) {
   const initial = (participant.identity[0] ?? '?').toUpperCase();
 
@@ -212,7 +226,7 @@ function ParticipantTile({
         {participant.identity}
         {isLocal && (
           <span className="ml-1 text-xs font-normal text-muted-foreground">
-            (you)
+            {youLabel}
           </span>
         )}
       </p>
@@ -231,11 +245,13 @@ function ParticipantRow({
   isLocal,
   isSpeaking,
   isMuted,
+  youLabel,
 }: {
   participant: Participant;
   isLocal: boolean;
   isSpeaking: boolean;
   isMuted: boolean;
+  youLabel: string;
 }) {
   const initial = (participant.identity[0] ?? '?').toUpperCase();
 
@@ -257,7 +273,7 @@ function ParticipantRow({
       <span className="flex-1 truncate text-xs font-medium text-foreground">
         {participant.identity}
         {isLocal && (
-          <span className="ml-1 font-normal text-muted-foreground">(you)</span>
+          <span className="ml-1 font-normal text-muted-foreground">{youLabel}</span>
         )}
       </span>
       {isMuted && <MicOff className="h-3 w-3 shrink-0 text-muted-foreground" />}
