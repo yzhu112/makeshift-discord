@@ -1,6 +1,6 @@
 services:
   livekit:
-    image: livekit/livekit-server
+    image: livekit/livekit-server:v1.13.10
     network_mode: host
     restart: unless-stopped
     volumes:
@@ -20,6 +20,15 @@ services:
     network_mode: host
     restart: unless-stopped
     volumes:
+      - ./infra/Caddyfile:/etc/caddy/Caddyfile:ro
+
+  gateway:
+    image: livekit/caddyl4@sha256:9dd090159a6042a907dbff0ce9dda27a21d2a559dc7b03b60a8e6b1b60b8348e
+    network_mode: host
+    restart: unless-stopped
+    command: run --config /etc/caddy/gateway.json
+    volumes:
+      - ./infra/caddy-gateway.json:/etc/caddy/gateway.json:ro
       - caddy_data:/data
       - caddy_config:/config
 

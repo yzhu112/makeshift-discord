@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "format": "biome check --write backend/src/",
+    "format": "biome format --write backend/src/",
     "prepare": "node -e \"if(process.env.NODE_ENV!=='production')require('child_process').execSync('husky',{stdio:'inherit'})\"",
     "backend:dev": "pnpm --filter backend dev",
     "backend:start": "pnpm --filter backend start",
@@ -20,7 +20,9 @@
     "frontend:image:publish": "pnpm frontend:image:build && pnpm frontend:image:push",
     "db:query": "sqlite3 $INIT_CWD/backend/data/voicechat.db",
     "livekit": "docker compose up",
-    "livekit:detach": "docker compose up -d"
+    "livekit:detach": "docker compose up -d",
+    "lint": "biome lint backend/src/ frontend/src/",
+    "typecheck": "pnpm --filter frontend exec tsc -b --pretty false"
   },
   "keywords": [],
   "author": "",

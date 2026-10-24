@@ -15,7 +15,28 @@
 	"linter": {
 		"enabled": true,
 		"rules": {
-			"recommended": true
+			"recommended": false,
+			"correctness": {
+				"noConstAssign": "error",
+				"noInvalidConstructorSuper": "error",
+				"noUnreachable": "error",
+				"noUnsafeFinally": "error",
+				"noUnsafeOptionalChaining": "error",
+				"useHookAtTopLevel": "error",
+				"useJsxKeyInIterable": "error",
+				"useIsNan": "error",
+				"useValidTypeof": "error"
+			},
+			"suspicious": {
+				"noAsyncPromiseExecutor": "error",
+				"noDuplicateCase": "error",
+				"noDuplicateClassMembers": "error",
+				"noDuplicateJsxProps": "error",
+				"noDuplicateObjectKeys": "error",
+				"noDuplicateParameters": "error",
+				"noFallthroughSwitchClause": "error",
+				"noUnsafeNegation": "error"
+			}
 		}
 	},
 	"javascript": {
@@ -30,5 +51,21 @@
 				"organizeImports": "on"
 			}
 		}
-	}
+	},
+	"overrides": [
+		{
+			"includes": ["frontend/**"],
+			"formatter": {
+				"enabled": false
+			},
+			"assist": {
+				"enabled": false
+			},
+			"css": {
+				"parser": {
+					"tailwindDirectives": true
+				}
+			}
+		}
+	]
 }

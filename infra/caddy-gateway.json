@@ -1,0 +1,53 @@
+{
+  "admin": { "disabled": true },
+  "storage": { "module": "file_system", "root": "/data/caddy" },
+  "apps": {
+    "tls": {
+      "certificates": {
+        "automate": ["yuhong-zhu.xyz", "turn.yuhong-zhu.xyz"]
+      }
+    },
+    "http": {
+      "servers": {
+        "redirect": {
+          "listen": [":80"],
+          "routes": [{
+            "match": [{ "host": ["yuhong-zhu.xyz"] }],
+            "handle": [{
+              "handler": "static_response",
+              "status_code": 308,
+              "headers": { "Location": ["https://yuhong-zhu.xyz{http.request.uri}"] }
+            }]
+          }]
+        }
+      }
+    },
+    "layer4": {
+      "servers": {
+        "main": {
+          "listen": [":443"],
+          "routes": [
+            {
+              "match": [{ "tls": { "sni": ["turn.yuhong-zhu.xyz"] } }],
+              "handle": [
+                { "handler": "tls" },
+                {
+                  "handler": "proxy",
+                  "proxy_protocol": "v2",
+                  "upstreams": [{ "dial": ["127.0.0.1:5349"] }]
+                }
+              ]
+            },
+            {
+              "match": [{ "tls": { "sni": ["yuhong-zhu.xyz"] } }],
+              "handle": [
+                { "handler": "tls", "connection_policies": [{ "alpn": ["http/1.1"] }] },
+                { "handler": "proxy", "upstreams": [{ "dial": ["127.0.0.1:8080"] }] }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+}

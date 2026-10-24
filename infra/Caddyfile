@@ -1,6 +1,14 @@
-yuhong-zhu.xyz {
+{
+	admin off
+}
+
+# TLS is terminated by the gateway; this listener is private to the host.
+http://:8080 {
+	bind 127.0.0.1
 	handle /api/* {
-		reverse_proxy 127.0.0.1:3000
+		reverse_proxy 127.0.0.1:3000 {
+			header_up X-Forwarded-Proto https
+		}
 	}
 
 	handle /livekit/* {
