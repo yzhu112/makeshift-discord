@@ -4,6 +4,12 @@ import CONFIG from '#config';
 import db from '#db';
 import { requestLogger } from '#logger';
 import { authRouter } from './auth.js';
+import {
+	diagnosticsRouter,
+	internalReport,
+	webhook,
+} from './diagnostics/routes.js';
+import { diagnostics, startDiagnostics } from './diagnostics/runtime.js';
 import { livekitRouter } from './livekit.js';
 import { sessionMiddleware } from './middleware/session.middleware.js';
 import { roomRouter } from './room.js';
@@ -27,7 +33,13 @@ if (CONFIG.NODE_ENV === 'production') {
 const app = express();
 const port = parseInt(CONFIG.PORT, 10) || 3000;
 
-app.use(express.json());
+app.post(
+	'/api/diagnostics/webhook',
+	express.raw({ type: 'application/webhook+json', limit: '128kb' }),
+	webhook,
+);
+app.use(express.json({ limit: '128kb' }));
+app.post('/api/diagnostics/internal', internalReport);
 app.use(cookieParser());
 app.use(requestLogger());
 
@@ -40,6 +52,7 @@ app.get('/', (req, res) => {
 app.use('/api', authRouter);
 app.use('/api', livekitRouter);
 app.use('/api', roomRouter);
+app.use('/api/diagnostics', diagnosticsRouter);
 
 app.get('/api/health', (req, res) => {
 	req.log.info('health check');
@@ -62,6 +75,24 @@ app.use((err, req, res, _next) => {
 	res.status(500).json({ error: errMsg });
 });
 
-app.listen(port, () => {
+const server = app.listen(port, () => {
 	console.log(`Example app listening on port ${port}`);
 });
+const stopDiagnostics = startDiagnostics();
+let shuttingDown = false;
+for (const signal of ['SIGTERM', 'SIGINT'])
+	process.on(signal, () => {
+		if (shuttingDown) return;
+		shuttingDown = true;
+		stopDiagnostics();
+		server.close(() => {
+			diagnostics.shutdown();
+			process.exit(0);
+		});
+		setTimeout(() => {
+			try {
+				diagnostics.shutdown();
+			} catch {}
+			process.exit(0);
+		}, 4000).unref();
+	});

@@ -21,6 +21,8 @@ import { useT } from '@/i18n/I18nProvider';
 import { cn } from '@/lib/utils';
 import type { ChatMessage } from './useRoom';
 import { useRoom } from './useRoom';
+import { CallTelemetry, errorDetails } from '@/diagnostics/telemetry';
+import { DiagnosticsLink } from '@/diagnostics/DiagnosticsLink';
 
 type Props = {
   user: User;
@@ -40,24 +42,38 @@ export function RoomView({ user, roomName, onLeave }: Props) {
 
   useEffect(() => {
     let cancelled = false;
-
-    api<{ token: string; url: string }>('/api/livekit-token', {
-      method: 'POST',
-      body: JSON.stringify({ roomName }),
-    })
-      .then(({ token, url }) => {
-        if (!cancelled) return connect(url, token);
-      })
-      .catch((err) => {
-        if (!cancelled)
+    const abort = new AbortController();
+    let telemetry: CallTelemetry | undefined;
+    let joined = false;
+    // Defer the start so StrictMode's setup/cleanup probe doesn't create a fake attempt.
+    const task = setTimeout(async () => {
+      try { telemetry = new CallTelemetry(user.id, roomName); } catch { /* Telemetry is optional. */ }
+      try {
+        const { token, url } = await api<{ token: string; url: string }>('/api/livekit-token', {
+          method: 'POST', signal: abort.signal,
+          body: JSON.stringify({ roomName, diagnosticSessionId: telemetry?.id }),
+        });
+        telemetry?.event('token_received', 'Join token received');
+        if (!cancelled) await connect(url, token, room => {
+          try { telemetry?.attach(room); } catch { /* Diagnostics must not block joining. */ }
+          room.once('connected', () => { joined = true; });
+        });
+      } catch (err) {
+        if (!cancelled) {
+          telemetry?.event(joined ? 'audio_setup_failed' : 'join_failed', joined ? 'Joined, but audio setup failed' : 'Unable to join room', errorDetails(err), 'error');
           setError(err instanceof ApiError ? err.message : t('room.error.join'));
-      });
+        }
+      }
+    }, 0);
 
     return () => {
       cancelled = true;
+      clearTimeout(task);
+      abort.abort();
+      telemetry?.finish();
       disconnect();
     };
-  }, [roomName, connect, disconnect]);
+  }, [roomName, user.id, connect, disconnect]);
 
   // Mark messages as read while the chat is on screen (desktop tab or mobile sheet).
   useEffect(() => {
@@ -120,6 +136,7 @@ export function RoomView({ user, roomName, onLeave }: Props) {
             )}
           </button>
           <SettingsBar />
+          <DiagnosticsLink />
           <span className="hidden h-6 items-center rounded-full bg-muted px-2.5 text-[11px] font-medium text-muted-foreground sm:flex">
             {user.username}
           </span>

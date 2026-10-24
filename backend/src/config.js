@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 
 const CONFIG = {
 	PORT: process.env.PORT,
@@ -10,6 +10,13 @@ const CONFIG = {
 	LIVEKIT_API_SECRET: process.env.LIVEKIT_API_SECRET,
 	LIVEKIT_URL: process.env.LIVEKIT_URL,
 	DB_PATH: resolve(process.env.DB_PATH ?? './data/voicechat.db'),
+	DIAGNOSTICS_DB_PATH: resolve(
+		process.env.DIAGNOSTICS_DB_PATH ??
+			join(
+				dirname(process.env.DB_PATH ?? './data/voicechat.db'),
+				'diagnostics.db',
+			),
+	),
 };
 
 export default CONFIG;

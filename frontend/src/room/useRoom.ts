@@ -62,9 +62,10 @@ export function useRoom() {
   // const noiseGateRef = useRef<NoiseGate | null>(null);
   const [state, setState] = useState<RoomState>(DISCONNECTED);
 
-  const connect = useCallback(async (url: string, token: string) => {
+  const connect = useCallback(async (url: string, token: string, observe?: (room: Room) => void) => {
     const room = new Room(ROOM_OPTIONS);
     roomRef.current = room;
+    observe?.(room);
 
     const getAll = (): Participant[] => [
       room.localParticipant,
@@ -133,7 +134,9 @@ export function useRoom() {
       });
 
     await room.connect(url, token);
+    if (roomRef.current !== room) { await room.disconnect(); return; }
     await room.localParticipant.setMicrophoneEnabled(true);
+    if (roomRef.current !== room) { await room.disconnect(); return; }
 
     // Noise gate disabled for now — needs more tuning
     // const pub = room.localParticipant.getTrackPublication(Track.Source.Microphone);
@@ -161,8 +164,10 @@ export function useRoom() {
   }, []);
 
   const disconnect = useCallback(() => {
-    roomRef.current?.disconnect();
+    const room = roomRef.current;
     roomRef.current = null;
+    room?.removeAllListeners();
+    void room?.disconnect();
     // noiseGateRef.current = null;
     setState(DISCONNECTED);
   }, []);
@@ -200,7 +205,10 @@ export function useRoom() {
 
   useEffect(
     () => () => {
-      roomRef.current?.disconnect();
+      const room = roomRef.current;
+      roomRef.current = null;
+      room?.removeAllListeners();
+      void room?.disconnect();
     },
     [],
   );

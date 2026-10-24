@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/dialog';
 import { useT } from '@/i18n/I18nProvider';
 import { cn } from '@/lib/utils';
+import { DiagnosticsLink } from '@/diagnostics/DiagnosticsLink';
 
 type Props = {
   user: User;
@@ -115,7 +116,8 @@ export function Lobby({ user, onJoin }: Props) {
           )}
         </CardContent>
 
-        <CardFooter className="sticky bottom-0 shrink-0 justify-end border-t bg-card px-6 pt-4 pb-[max(env(safe-area-inset-bottom),1.5rem)] sm:static sm:border-t-0 sm:bg-transparent sm:pb-6">
+        <CardFooter className="sticky bottom-0 shrink-0 justify-between border-t bg-card px-6 pt-4 pb-[max(env(safe-area-inset-bottom),1.5rem)] sm:static sm:border-t-0 sm:bg-transparent sm:pb-6">
+          <DiagnosticsLink />
           <button
             type="button"
             onClick={logout}

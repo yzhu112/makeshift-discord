@@ -1,5 +1,12 @@
+x-logging: &bounded-logs
+  driver: json-file
+  options:
+    max-size: "2m"
+    max-file: "2"
+
 services:
   livekit:
+    logging: *bounded-logs
     image: livekit/livekit-server:v1.13.10
     network_mode: host
     restart: unless-stopped
@@ -8,6 +15,7 @@ services:
     command: --config /etc/livekit.yaml
 
   backend:
+    logging: *bounded-logs
     image: ghcr.io/yzhu112/makeshift-discord-backend:latest
     network_mode: host
     restart: unless-stopped
@@ -16,6 +24,7 @@ services:
       - ./data:/app/data
 
   caddy:
+    logging: *bounded-logs
     image: ghcr.io/yzhu112/makeshift-discord-frontend:latest
     network_mode: host
     restart: unless-stopped
@@ -23,6 +32,7 @@ services:
       - ./infra/Caddyfile:/etc/caddy/Caddyfile:ro
 
   gateway:
+    logging: *bounded-logs
     image: livekit/caddyl4@sha256:9dd090159a6042a907dbff0ce9dda27a21d2a559dc7b03b60a8e6b1b60b8348e
     network_mode: host
     restart: unless-stopped
