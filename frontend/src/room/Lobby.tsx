@@ -1,6 +1,6 @@
 import type { FormEvent } from 'react';
 import { useState } from 'react';
-import { ArrowUpRight, Globe, Lock, LogOut, Plus, UserPlus, Volume2 } from 'lucide-react';
+import { ArrowUpRight, Globe, Lock, Plus, UserPlus, Volume2 } from 'lucide-react';
 import { ApiError, api } from '@/api';
 import type { User } from '@/api';
 import { useAuth } from '@/auth/AuthProvider';
@@ -23,7 +23,7 @@ type Props = {
 };
 
 export function Lobby({ user, onJoin }: Props) {
-  const { logout, refresh } = useAuth();
+  const { refresh } = useAuth();
   const t = useT();
   const [createOpen, setCreateOpen] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
@@ -72,7 +72,6 @@ export function Lobby({ user, onJoin }: Props) {
         </section>
         <div className="lobby-bottom">
           <p>{t('ui.lobbyHint')}</p>
-          <button type="button" onClick={logout} className="app-text-button"><LogOut size={13} />{t('lobby.logout')}</button>
         </div>
       </main>
 

@@ -19,7 +19,6 @@ function App() {
 
 function AuthSwitch() {
   const { state } = useAuth();
-  const [view, setView] = useState<View>({ screen: 'lobby' });
   const userId = state.status === 'authed' ? state.user.id : null;
   useEffect(() => userId === null ? undefined : resumePendingDiagnostics(userId), [userId]);
 
@@ -27,18 +26,11 @@ function AuthSwitch() {
   if (state.status === 'unauthed') return <AuthGate />;
   if (window.location.pathname.replace(/\/$/, '') === '/diagnostics') return <DiagnosticsPage user={state.user} />;
 
-  return <AppShell user={state.user} view={view} setView={setView} />;
+  return <AppShell key={state.user.id} user={state.user} />;
 }
 
-function AppShell({
-  user,
-  view,
-  setView,
-}: {
-  user: User;
-  view: View;
-  setView: (v: View) => void;
-}) {
+function AppShell({ user }: { user: User }) {
+  const [view, setView] = useState<View>({ screen: 'lobby' });
   if (view.screen === 'lobby') {
     return (
       <Lobby user={user} onJoin={(roomName) => setView({ screen: 'room', roomName })} />

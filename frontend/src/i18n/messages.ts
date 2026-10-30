@@ -8,6 +8,10 @@ export const LOCALE_LABELS: Record<Locale, string> = {
 };
 
 const en = {
+	'profile.open': 'Account menu for {name}',
+	'profile.signedIn': 'Signed in as',
+	'profile.loggingOut': 'Logging out…',
+	'profile.logoutError': 'Could not log out. Check your connection and try again.',
 	'ui.brand': 'Voice',
 	'ui.account': 'Account',
 	'ui.workspace': 'Workspace',
@@ -116,6 +120,10 @@ type MessageKey = keyof typeof en;
 type Dict = Record<MessageKey, string>;
 
 const zh: Dict = {
+	'profile.open': '{name} 的账户菜单',
+	'profile.signedIn': '当前登录',
+	'profile.loggingOut': '正在退出…',
+	'profile.logoutError': '退出失败，请检查网络连接后重试。',
 	'ui.brand': 'Voice',
 	'ui.account': '账户',
 	'ui.workspace': '工作区',
@@ -221,6 +229,10 @@ const zh: Dict = {
 };
 
 const ja: Dict = {
+	'profile.open': '{name} のアカウントメニュー',
+	'profile.signedIn': 'ログイン中',
+	'profile.loggingOut': 'ログアウト中…',
+	'profile.logoutError': 'ログアウトできませんでした。接続を確認して再試行してください。',
 	'ui.brand': 'Voice',
 	'ui.account': 'アカウント',
 	'ui.workspace': 'ワークスペース',

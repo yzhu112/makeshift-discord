@@ -1,3 +1,4 @@
+import { ProfileMenu } from '@/components/ProfileMenu';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Activity,
@@ -340,7 +341,7 @@ export function DiagnosticsPage({ user }: { user: User }) {
           </span>
         </a>
         <div className="diag-top-actions">
-          <span className="diag-user">{user.username}</span>
+          <ProfileMenu username={user.username} />
           <ThemeToggle />
           <a href="/" className="diag-icon-link" title="Back to lobby">
             <ArrowUpRight size={16} />

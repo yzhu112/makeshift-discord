@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { AudioLines } from 'lucide-react';
 import type { CallAudioSettings } from '@/audio/AudioSettings';
 import { SettingsBar } from './SettingsBar';
+import { ProfileMenu } from './ProfileMenu';
 import { DiagnosticsLink } from '@/diagnostics/DiagnosticsLink';
 import { useT } from '@/i18n/I18nProvider';
 
@@ -24,7 +25,7 @@ export function AppHeader({ section, username, audio, children }: {
         {children}
         {username && <DiagnosticsLink />}
         <SettingsBar audio={audio} />
-        {username && <span className="app-account" title={username}>{username.slice(0, 1).toUpperCase()}</span>}
+        {username && <ProfileMenu username={username} />}
       </div>
     </header>
   );
