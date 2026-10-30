@@ -20,6 +20,8 @@ Use compact sans-serif typography, neutral surfaces, thin borders, restrained co
 
 Every label or control should serve a purpose; omit redundant category labels and filler. Place controls where they are discoverable and useful, keeping equivalent actions consistent across screens. Preserve existing functionality when reorganizing layouts, including account actions, room creation/joining and codes, chat/unread state, call controls, diagnostics, themes, languages, and microphone testing. In-call microphone testing must mute the call and restore its prior mute state afterward.
 
+New scrollable components must use the shared minimalist scrollbar styling in `frontend/src/index.css`.
+
 ## Internationalization
 
 Every new user-facing feature must support all three locales: English (`en`), Chinese (`zh`), and Japanese (`ja`). Add corresponding keys to all three dictionaries in `frontend/src/i18n/messages.ts` and render them through `useT`/`useI18n`.
