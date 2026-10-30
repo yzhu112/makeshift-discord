@@ -8,7 +8,7 @@ export const LOCALE_LABELS: Record<Locale, string> = {
 };
 
 const en = {
-	'ui.brand': 'Makeshift',
+	'ui.brand': 'Voice',
 	'ui.account': 'Account',
 	'ui.workspace': 'Workspace',
 	'ui.voiceWorkspace': 'A place to talk',
@@ -56,7 +56,7 @@ const en = {
 	'settings.theme.system': 'System',
 	'settings.language': 'Language',
 
-	'auth.brand': 'Makeshift · Voice',
+	'auth.brand': 'Voice',
 	'auth.welcome.login': 'Welcome back to the room.',
 	'auth.welcome.signup': 'Step into the room.',
 	'auth.field.username': 'Username',
@@ -116,7 +116,7 @@ type MessageKey = keyof typeof en;
 type Dict = Record<MessageKey, string>;
 
 const zh: Dict = {
-	'ui.brand': 'Makeshift',
+	'ui.brand': 'Voice',
 	'ui.account': '账户',
 	'ui.workspace': '工作区',
 	'ui.voiceWorkspace': '轻松聊聊',
@@ -164,7 +164,7 @@ const zh: Dict = {
 	'settings.theme.system': '跟随系统',
 	'settings.language': '语言',
 
-	'auth.brand': 'Makeshift · 语音',
+	'auth.brand': 'Voice',
 	'auth.welcome.login': '欢迎回来',
 	'auth.welcome.signup': '一起聊聊',
 	'auth.field.username': '用户名',
@@ -221,7 +221,7 @@ const zh: Dict = {
 };
 
 const ja: Dict = {
-	'ui.brand': 'Makeshift',
+	'ui.brand': 'Voice',
 	'ui.account': 'アカウント',
 	'ui.workspace': 'ワークスペース',
 	'ui.voiceWorkspace': '会話のための場所',
@@ -269,7 +269,7 @@ const ja: Dict = {
 	'settings.theme.system': 'システム',
 	'settings.language': '言語',
 
-	'auth.brand': 'Makeshift · ボイス',
+	'auth.brand': 'Voice',
 	'auth.welcome.login': 'おかえりなさい。',
 	'auth.welcome.signup': '部屋へどうぞ。',
 	'auth.field.username': 'ユーザー名',
