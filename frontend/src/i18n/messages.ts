@@ -8,6 +8,11 @@ export const LOCALE_LABELS: Record<Locale, string> = {
 };
 
 const en = {
+	'room.volume.enableAudio': 'Enable sound',
+	'room.volume.playbackError': 'Could not start audio playback. Try enabling sound again.',
+	'room.volume.label': 'Volume',
+	'room.volume.for': 'Volume for {name}',
+	'room.volume.help': 'Only changes what you hear. 100% is normal, up to 200% boosts quiet voices, and 0% silences this participant.',
 	'profile.open': 'Account menu for {name}',
 	'profile.signedIn': 'Signed in as',
 	'profile.loggingOut': 'Logging out…',
@@ -120,6 +125,11 @@ type MessageKey = keyof typeof en;
 type Dict = Record<MessageKey, string>;
 
 const zh: Dict = {
+	'room.volume.enableAudio': '开启声音',
+	'room.volume.playbackError': '无法播放音频。请再次尝试开启声音。',
+	'room.volume.label': '音量',
+	'room.volume.for': '{name} 的音量',
+	'room.volume.help': '仅影响你听到的声音。100% 为原始音量，最高 200% 可放大较小的声音，0% 为静音。',
 	'profile.open': '{name} 的账户菜单',
 	'profile.signedIn': '当前登录',
 	'profile.loggingOut': '正在退出…',
@@ -229,6 +239,11 @@ const zh: Dict = {
 };
 
 const ja: Dict = {
+	'room.volume.enableAudio': '音声を有効にする',
+	'room.volume.playbackError': '音声を再生できませんでした。もう一度音声を有効にしてください。',
+	'room.volume.label': '音量',
+	'room.volume.for': '{name} の音量',
+	'room.volume.help': '自分に聞こえる音量だけを変更します。100% が通常の音量で、最大 200% まで小さな声を増幅できます。0% で消音します。',
 	'profile.open': '{name} のアカウントメニュー',
 	'profile.signedIn': 'ログイン中',
 	'profile.loggingOut': 'ログアウト中…',

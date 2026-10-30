@@ -22,6 +22,8 @@ import { useT } from '@/i18n/I18nProvider';
 import { cn } from '@/lib/utils';
 import type { ChatMessage } from './useRoom';
 import { useRoom } from './useRoom';
+import { ParticipantVolume } from './ParticipantVolume';
+import { participantVolumeKey, savedParticipantVolume } from '@/audio/participantVolume';
 import { CallTelemetry, errorDetails } from '@/diagnostics/telemetry';
 
 type Props = {
@@ -31,8 +33,15 @@ type Props = {
 };
 
 export function RoomView({ user, roomName, onLeave }: Props) {
-  const { beginMicrophoneTest, isTestingMicrophone, state, connect, disconnect, toggleMute, sendMessage, noiseMode, noiseBusy, noiseNotice, changeNoiseMode } = useRoom();
+  const { startAudio, beginMicrophoneTest, isTestingMicrophone, state, connect, disconnect, toggleMute, sendMessage, noiseMode, noiseBusy, noiseNotice, changeNoiseMode } = useRoom();
   const t = useT();
+  const [volumes, setVolumes] = useState<Map<string, number>>(() => new Map());
+  const getVolume = (identity: string) => volumes.get(participantVolumeKey(user.id, identity)) ?? savedParticipantVolume(user.id, identity);
+  function changeVolume(identity: string, volume: number) {
+    const key = participantVolumeKey(user.id, identity);
+    setVolumes(previous => new Map(previous).set(key, volume));
+    try { localStorage.setItem(key, String(volume)); } catch { /* Optional preference. */ }
+  }
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<'people' | 'chat'>('people');
   const [chatOpen, setChatOpen] = useState(false);
@@ -92,7 +101,11 @@ export function RoomView({ user, roomName, onLeave }: Props) {
 
   return (
     <div className="workspace call-page">
-      {state.audioTracks.map(track => <RemoteAudio key={track.sid} track={track} />)}
+      {state.audioTracks.map(track => {
+        const owner = state.participants.find(participant =>
+          [...participant.audioTrackPublications.values()].some(publication => publication.track === track));
+        return <RemoteAudio key={track.sid} track={track} volume={owner ? getVolume(owner.identity) : 100} />;
+      })}
       <AppHeader section={roomName} username={user.username} audio={{ mode: noiseMode, busy: noiseBusy || !isConnected, onChange: changeNoiseMode, beginTest: beginMicrophoneTest }} />
       <div className="call-layout">
         <main className="call-main">
@@ -108,6 +121,11 @@ export function RoomView({ user, roomName, onLeave }: Props) {
             {room?.code && <div className="call-share"><CopyCode code={room.code} /></div>}
           </div>
           {error && <p role="alert" className="call-notice call-error">{error}</p>}
+          {!state.canPlaybackAudio && isConnected && (
+            <Button variant="outline" className="app-button" onClick={() => void startAudio().catch(() => setError(t('room.volume.playbackError')))}>
+              <Volume2 size={16} />{t('room.volume.enableAudio')}
+            </Button>
+          )}
           <div className="call-stage">
             {count === 0 ? (
               <div className="app-empty call-empty"><Volume2 size={28} strokeWidth={1.4} /><p>{isConnecting ? t('room.status.joining') : t('room.status.cannotConnect')}</p></div>
@@ -117,7 +135,7 @@ export function RoomView({ user, roomName, onLeave }: Props) {
                   <ParticipantTile key={p.identity} participant={p} isLocal={p.identity === user.username}
                     isSpeaking={state.activeSpeakerIds.has(p.identity)}
                     isMuted={p.identity === user.username ? state.isMuted : !p.isMicrophoneEnabled}
-                    youLabel={t('room.you')} />
+                    youLabel={t('room.you')} volume={getVolume(p.identity)} onVolumeChange={volume => changeVolume(p.identity, volume)} />
                 ))}
               </div>
             )}
@@ -169,12 +187,16 @@ function ParticipantTile({
   isSpeaking,
   isMuted,
   youLabel,
+  volume,
+  onVolumeChange,
 }: {
   participant: Participant;
   isLocal: boolean;
   isSpeaking: boolean;
   isMuted: boolean;
   youLabel: string;
+  volume: number;
+  onVolumeChange: (volume: number) => void;
 }) {
   const initial = (participant.identity[0] ?? '?').toUpperCase();
   const t = useT();
@@ -183,6 +205,7 @@ function ParticipantTile({
       <div className="participant-tile-top"><span>{isLocal ? t('ui.you') : t('ui.participant')}</span><span aria-label={t(isMuted ? 'ui.micMuted' : 'ui.micOn')}>{isMuted ? <MicOff size={14} /> : <Mic size={14} />}</span></div>
       <div className="participant-avatar">{initial}</div>
       <div className="participant-tile-bottom"><strong>{participant.identity}{isLocal && <small> {youLabel}</small>}</strong><span className="participant-status">{t(isMuted ? 'ui.micMuted' : isSpeaking ? 'ui.speaking' : 'ui.listening')}</span></div>
+      {!isLocal && <ParticipantVolume identity={participant.identity} volume={volume} onChange={onVolumeChange} />}
     </div>
   );
 }
@@ -286,7 +309,7 @@ function ChatSection({
   );
 }
 
-function RemoteAudio({ track }: { track: RemoteAudioTrack }) {
+function RemoteAudio({ track, volume }: { track: RemoteAudioTrack; volume: number }) {
   const audioRef = useRef<HTMLAudioElement>(null);
   useEffect(() => {
     const el = audioRef.current;
@@ -296,5 +319,9 @@ function RemoteAudio({ track }: { track: RemoteAudioTrack }) {
       track.detach(el);
     };
   }, [track]);
+  useEffect(() => {
+    // Apply after attachment, including zero, and whenever a replacement track arrives.
+    track.setVolume(volume / 100);
+  }, [track, volume]);
   return <audio ref={audioRef} autoPlay className="hidden" />;
 }

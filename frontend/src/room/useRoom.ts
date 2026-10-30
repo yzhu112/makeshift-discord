@@ -15,6 +15,8 @@ import { muteForMicrophoneTest } from '@/audio/callTestMute';
 import { captureOptions, savedNoiseMode, saveNoiseMode, type NoiseMode } from '@/audio/preferences';
 
 const ROOM_OPTIONS = {
+  // Web Audio gain supports amplification above the media element limit of 100%.
+  webAudioMix: true,
   audioCaptureDefaults: captureOptions('browser'),
   publishDefaults: {
     audioPreset: { maxBitrate: 96_000 },
@@ -32,6 +34,7 @@ export type ChatMessage = {
 
 export type RoomState = {
   connectionState: ConnectionState;
+  canPlaybackAudio: boolean;
   participants: Participant[];
   activeSpeakerIds: Set<string>;
   isMuted: boolean;
@@ -41,6 +44,7 @@ export type RoomState = {
 
 const DISCONNECTED: RoomState = {
   connectionState: ConnectionState.Disconnected,
+  canPlaybackAudio: true,
   participants: [],
   activeSpeakerIds: new Set(),
   isMuted: false,
@@ -147,6 +151,9 @@ export function useRoom() {
     ];
 
     room
+      .on(RoomEvent.AudioPlaybackStatusChanged, () =>
+        setState(s => ({ ...s, canPlaybackAudio: room.canPlaybackAudio })),
+      )
       .on(RoomEvent.ConnectionStateChanged, (cs) =>
         setState((s) => ({ ...s, connectionState: cs })),
       )
@@ -227,12 +234,17 @@ export function useRoom() {
     setState((s) => ({
       ...s,
       connectionState: room.state,
+      canPlaybackAudio: room.canPlaybackAudio,
       participants: getAll(),
       activeSpeakerIds: new Set(),
       isMuted: false,
       audioTracks,
     }));
   }, [applyNoiseMode]);
+
+  const startAudio = useCallback(async () => {
+    await roomRef.current?.startAudio();
+  }, []);
 
   const disconnect = useCallback(() => {
     const room = roomRef.current;
@@ -313,5 +325,5 @@ export function useRoom() {
     [],
   );
 
-  return { beginMicrophoneTest, isTestingMicrophone, state, connect, disconnect, toggleMute, sendMessage, noiseMode, noiseBusy, noiseNotice, changeNoiseMode };
+  return { startAudio, beginMicrophoneTest, isTestingMicrophone, state, connect, disconnect, toggleMute, sendMessage, noiseMode, noiseBusy, noiseNotice, changeNoiseMode };
 }
