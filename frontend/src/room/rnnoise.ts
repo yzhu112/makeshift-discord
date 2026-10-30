@@ -17,7 +17,7 @@ export class RnnoiseProcessor implements TrackProcessor<Track.Kind.Audio, AudioP
     this.onFailure = onFailure;
   }
 
-  async init({ track }: AudioProcessorOptions) {
+  async init({ track }: Pick<AudioProcessorOptions, 'track'>) {
     const context = new AudioContext({ sampleRate: 48_000 });
     this.context = context;
     try {

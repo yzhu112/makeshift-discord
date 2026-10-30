@@ -10,19 +10,9 @@ import {
 } from 'livekit-client';
 
 import { RnnoiseProcessor } from './rnnoise';
+import { muteForMicrophoneTest } from '@/audio/callTestMute';
 
-export type NoiseMode = 'rnnoise' | 'browser';
-const NOISE_STORAGE_KEY = 'voice-noise-mode';
-function savedNoiseMode(): NoiseMode {
-  try { return localStorage.getItem(NOISE_STORAGE_KEY) === 'browser' ? 'browser' : 'rnnoise'; }
-  catch { return 'rnnoise'; }
-}
-const captureOptions = (mode: NoiseMode) => ({
-  echoCancellation: true,
-  noiseSuppression: mode === 'browser',
-  voiceIsolation: mode === 'browser',
-  channelCount: 1,
-});
+import { captureOptions, savedNoiseMode, saveNoiseMode, type NoiseMode } from '@/audio/preferences';
 
 const ROOM_OPTIONS = {
   audioCaptureDefaults: captureOptions('browser'),
@@ -74,7 +64,9 @@ export function useRoom() {
   const [noiseBusy, setNoiseBusy] = useState(true);
   const noiseBusyRef = useRef(false);
   const noiseQueue = useRef<Promise<void>>(Promise.resolve());
-  const [noiseNotice, setNoiseNotice] = useState<'fallback' | 'error' | null>(null);
+  const [noiseNotice, setNoiseNotice] = useState<'fallback' | 'error' | 'restore' | null>(null);
+  const testMuteRef = useRef<object | null>(null);
+  const [isTestingMicrophone, setIsTestingMicrophone] = useState(false);
   const [state, setState] = useState<RoomState>(DISCONNECTED);
 
   const applyNoiseMode = useCallback(async (room: Room, mode: NoiseMode) => {
@@ -135,7 +127,7 @@ export function useRoom() {
       await operation;
       if (roomRef.current !== room) return;
       noiseModeRef.current = mode;
-      try { localStorage.setItem(NOISE_STORAGE_KEY, mode); } catch { /* Optional preference. */ }
+      saveNoiseMode(mode);
     } catch {
       if (roomRef.current === room) setNoiseNotice('error');
     } finally {
@@ -250,7 +242,37 @@ export function useRoom() {
     setState(DISCONNECTED);
   }, []);
 
+  const beginMicrophoneTest = useCallback(async () => {
+    const room = roomRef.current;
+    if (!room || room.state !== ConnectionState.Connected || testMuteRef.current) throw new Error('Call unavailable');
+    const token = {};
+    testMuteRef.current = token;
+    setIsTestingMicrophone(true);
+    const isCurrent = () => roomRef.current === room && testMuteRef.current === token;
+    const finish = () => {
+      if (testMuteRef.current === token) {
+        testMuteRef.current = null;
+        setIsTestingMicrophone(false);
+      }
+    };
+    try {
+      const restore = await muteForMicrophoneTest(room.localParticipant, isCurrent, muted => setState(s => ({ ...s, isMuted: muted })));
+      return async () => {
+        try { await restore(); }
+        catch (error) {
+          if (isCurrent()) setNoiseNotice('restore');
+          throw error;
+        } finally { finish(); }
+      };
+    } catch (error) {
+      if (isCurrent()) setNoiseNotice('restore');
+      finish();
+      throw error;
+    }
+  }, []);
+
   const toggleMute = useCallback(async () => {
+    if (testMuteRef.current) return;
     const room = roomRef.current;
     if (!room) return;
     const enabled = room.localParticipant.isMicrophoneEnabled;
@@ -291,5 +313,5 @@ export function useRoom() {
     [],
   );
 
-  return { state, connect, disconnect, toggleMute, sendMessage, noiseMode, noiseBusy, noiseNotice, changeNoiseMode };
+  return { beginMicrophoneTest, isTestingMicrophone, state, connect, disconnect, toggleMute, sendMessage, noiseMode, noiseBusy, noiseNotice, changeNoiseMode };
 }

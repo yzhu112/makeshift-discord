@@ -31,7 +31,7 @@ type Props = {
 };
 
 export function RoomView({ user, roomName, onLeave }: Props) {
-  const { state, connect, disconnect, toggleMute, sendMessage, noiseMode, noiseBusy, noiseNotice, changeNoiseMode } = useRoom();
+  const { beginMicrophoneTest, isTestingMicrophone, state, connect, disconnect, toggleMute, sendMessage, noiseMode, noiseBusy, noiseNotice, changeNoiseMode } = useRoom();
   const t = useT();
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<'people' | 'chat'>('people');
@@ -135,7 +135,7 @@ export function RoomView({ user, roomName, onLeave }: Props) {
               <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary ring-2 ring-background" />
             )}
           </button>
-          <SettingsBar />
+          <SettingsBar audio={{ mode: noiseMode, busy: noiseBusy || !isConnected, onChange: changeNoiseMode, beginTest: beginMicrophoneTest }} />
           <DiagnosticsLink />
           <span className="hidden h-6 items-center rounded-full bg-muted px-2.5 text-[11px] font-medium text-muted-foreground sm:flex">
             {user.username}
@@ -232,25 +232,13 @@ export function RoomView({ user, roomName, onLeave }: Props) {
 
       {noiseNotice && (
         <p role="status" className="border-t px-3 py-2 text-center text-xs text-muted-foreground">
-          {t(noiseNotice === 'fallback' ? 'room.noise.fallback' : 'room.noise.error')}
+          {t(noiseNotice === 'fallback' ? 'room.noise.fallback' : noiseNotice === 'restore' ? 'audio.restoreError' : 'room.noise.error')}
         </p>
       )}
       {/* Controls */}
       <footer className="flex shrink-0 items-center justify-center gap-3 border-t bg-muted/20 px-3 pt-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] sm:h-16 sm:gap-2.5 sm:py-0">
-        <label className="flex min-w-0 flex-col gap-1 text-xs text-muted-foreground">
-          {t('room.noise.label')}
-          <select
-            value={noiseMode}
-            disabled={!isConnected || noiseBusy}
-            onChange={(event) => void changeNoiseMode(event.target.value as 'rnnoise' | 'browser')}
-            className="h-9 rounded-md border bg-background px-2 text-sm text-foreground disabled:opacity-50"
-          >
-            <option value="rnnoise">RNNoise</option>
-            <option value="browser">{t('room.noise.browser')}</option>
-          </select>
-        </label>
         <Button
-          disabled={!isConnected || noiseBusy}
+          disabled={!isConnected || noiseBusy || isTestingMicrophone}
           variant={state.isMuted ? 'secondary' : 'outline'}
           size="icon"
           onClick={toggleMute}
