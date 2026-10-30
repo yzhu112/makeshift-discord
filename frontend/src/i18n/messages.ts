@@ -8,6 +8,11 @@ export const LOCALE_LABELS: Record<Locale, string> = {
 };
 
 const en = {
+	'room.microphone.blocked': 'You can still listen and chat. Microphone access is blocked. Allow it in your browser’s site permissions or system settings, then select Enable microphone.',
+	'room.microphone.unavailable': 'You can still listen and chat. No microphone was found. Connect one, then select Enable microphone.',
+	'room.microphone.error': 'You can still listen and chat. Could not change microphone state. Check your microphone and try again.',
+	'room.microphone.enable': 'Enable microphone',
+	'room.microphone.starting': 'Updating microphone…',
 	'room.volume.enableAudio': 'Enable sound',
 	'room.volume.playbackError': 'Could not start audio playback. Try enabling sound again.',
 	'room.volume.label': 'Volume',
@@ -125,6 +130,11 @@ type MessageKey = keyof typeof en;
 type Dict = Record<MessageKey, string>;
 
 const zh: Dict = {
+	'room.microphone.blocked': '你仍可收听和聊天。麦克风权限已被阻止。请在浏览器的网站权限或系统设置中允许访问，然后选择“启用麦克风”。',
+	'room.microphone.unavailable': '你仍可收听和聊天。未找到麦克风。请连接麦克风，然后选择“启用麦克风”。',
+	'room.microphone.error': '你仍可收听和聊天。无法更改麦克风状态。请检查麦克风并重试。',
+	'room.microphone.enable': '启用麦克风',
+	'room.microphone.starting': '正在更新麦克风…',
 	'room.volume.enableAudio': '开启声音',
 	'room.volume.playbackError': '无法播放音频。请再次尝试开启声音。',
 	'room.volume.label': '音量',
@@ -239,6 +249,11 @@ const zh: Dict = {
 };
 
 const ja: Dict = {
+	'room.microphone.blocked': '音声の受信とチャットは引き続き利用できます。マイクへのアクセスがブロックされています。ブラウザーのサイト権限またはシステム設定で許可してから、「マイクを有効にする」を選択してください。',
+	'room.microphone.unavailable': '音声の受信とチャットは引き続き利用できます。マイクが見つかりません。接続してから、「マイクを有効にする」を選択してください。',
+	'room.microphone.error': '音声の受信とチャットは引き続き利用できます。マイクの状態を変更できませんでした。マイクを確認して再試行してください。',
+	'room.microphone.enable': 'マイクを有効にする',
+	'room.microphone.starting': 'マイクを更新中…',
 	'room.volume.enableAudio': '音声を有効にする',
 	'room.volume.playbackError': '音声を再生できませんでした。もう一度音声を有効にしてください。',
 	'room.volume.label': '音量',

@@ -33,7 +33,7 @@ type Props = {
 };
 
 export function RoomView({ user, roomName, onLeave }: Props) {
-  const { startAudio, beginMicrophoneTest, isTestingMicrophone, state, connect, disconnect, toggleMute, sendMessage, noiseMode, noiseBusy, noiseNotice, changeNoiseMode } = useRoom();
+  const { microphoneBusy, startAudio, beginMicrophoneTest, isTestingMicrophone, state, connect, disconnect, toggleMute, sendMessage, noiseMode, noiseBusy, noiseNotice, changeNoiseMode } = useRoom();
   const t = useT();
   const [volumes, setVolumes] = useState<Map<string, number>>(() => new Map());
   const getVolume = (identity: string) => volumes.get(participantVolumeKey(user.id, identity)) ?? savedParticipantVolume(user.id, identity);
@@ -106,7 +106,7 @@ export function RoomView({ user, roomName, onLeave }: Props) {
           [...participant.audioTrackPublications.values()].some(publication => publication.track === track));
         return <RemoteAudio key={track.sid} track={track} volume={owner ? getVolume(owner.identity) : 100} />;
       })}
-      <AppHeader section={roomName} username={user.username} audio={{ mode: noiseMode, busy: noiseBusy || !isConnected, onChange: changeNoiseMode, beginTest: beginMicrophoneTest }} />
+      <AppHeader section={roomName} username={user.username} audio={{ mode: noiseMode, busy: microphoneBusy || noiseBusy || !isConnected, onChange: changeNoiseMode, beginTest: beginMicrophoneTest }} />
       <div className="call-layout">
         <main className="call-main">
           <div className="call-heading">
@@ -121,6 +121,10 @@ export function RoomView({ user, roomName, onLeave }: Props) {
             {room?.code && <div className="call-share"><CopyCode code={room.code} /></div>}
           </div>
           {error && <p role="alert" className="call-notice call-error">{error}</p>}
+          {state.microphoneIssue && <p role="status" className="call-notice">{t(
+            state.microphoneIssue === 'blocked' ? 'room.microphone.blocked' :
+            state.microphoneIssue === 'unavailable' ? 'room.microphone.unavailable' : 'room.microphone.error'
+          )}</p>}
           {!state.canPlaybackAudio && isConnected && (
             <Button variant="outline" className="app-button" onClick={() => void startAudio().catch(() => setError(t('room.volume.playbackError')))}>
               <Volume2 size={16} />{t('room.volume.enableAudio')}
@@ -162,8 +166,8 @@ export function RoomView({ user, roomName, onLeave }: Props) {
       <footer className="call-controls">
         <div className="call-self"><span className="self-avatar">{user.username.slice(0, 1).toUpperCase()}</span><div><strong>{user.username}</strong><small>{t(isTestingMicrophone ? 'audio.micTest' : state.isMuted ? 'ui.micMuted' : 'ui.micOn')}</small></div></div>
         <div className="call-control-buttons">
-          <Button disabled={!isConnected || noiseBusy || isTestingMicrophone} variant="outline" onClick={() => void toggleMute().catch(() => setError(t('ui.micError')))} className="app-button call-mute" aria-pressed={state.isMuted}>
-            {state.isMuted ? <MicOff size={16} /> : <Mic size={16} />}{t(state.isMuted ? 'room.action.unmute' : 'room.action.mute')}
+          <Button disabled={!isConnected || noiseBusy || microphoneBusy || isTestingMicrophone} variant="outline" onClick={() => void toggleMute()} className="app-button call-mute" aria-pressed={state.isMuted}>
+            {state.isMuted ? <MicOff size={16} /> : <Mic size={16} />}<span>{t(microphoneBusy ? 'room.microphone.starting' : state.microphoneIssue && state.isMuted ? 'room.microphone.enable' : state.isMuted ? 'room.action.unmute' : 'room.action.mute')}</span>
           </Button>
           <Button variant="outline" onClick={() => setChatOpen(true)} className="app-button call-mobile-chat" aria-label={t('room.chat.open')}>
             <MessageSquare size={16} /><span>{t('room.tab.chat')}</span>{unread > 0 && <i className="unread-dot" />}

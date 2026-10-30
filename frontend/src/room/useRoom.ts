@@ -11,6 +11,7 @@ import {
 
 import { RnnoiseProcessor } from './rnnoise';
 import { muteForMicrophoneTest } from '@/audio/callTestMute';
+import { startMicrophone, microphoneIssue, type MicrophoneIssue } from '@/audio/startMicrophone';
 
 import { captureOptions, savedNoiseMode, saveNoiseMode, type NoiseMode } from '@/audio/preferences';
 
@@ -38,6 +39,7 @@ export type RoomState = {
   participants: Participant[];
   activeSpeakerIds: Set<string>;
   isMuted: boolean;
+  microphoneIssue: MicrophoneIssue | null;
   audioTracks: RemoteAudioTrack[];
   messages: ChatMessage[];
 };
@@ -47,7 +49,8 @@ const DISCONNECTED: RoomState = {
   canPlaybackAudio: true,
   participants: [],
   activeSpeakerIds: new Set(),
-  isMuted: false,
+  isMuted: true,
+  microphoneIssue: null,
   audioTracks: [],
   messages: [],
 };
@@ -63,6 +66,8 @@ const decoder = new TextDecoder();
 
 export function useRoom() {
   const roomRef = useRef<Room | null>(null);
+  const [microphoneBusy, setMicrophoneBusy] = useState(false);
+  const microphoneBusyRef = useRef(false);
   const [noiseMode, setNoiseMode] = useState<NoiseMode>(savedNoiseMode);
   const noiseModeRef = useRef(noiseMode);
   const [noiseBusy, setNoiseBusy] = useState(true);
@@ -126,7 +131,10 @@ export function useRoom() {
     noiseBusyRef.current = true;
     setNoiseBusy(true);
     try {
-      const operation = noiseQueue.current.catch(() => {}).then(() => applyNoiseMode(room, mode));
+      const operation = noiseQueue.current.catch(() => {}).then(async () => {
+        if (room.localParticipant.getTrackPublication(Track.Source.Microphone)?.track) await applyNoiseMode(room, mode);
+        else if (roomRef.current === room) setNoiseMode(mode);
+      });
       noiseQueue.current = operation;
       await operation;
       if (roomRef.current !== room) return;
@@ -137,6 +145,28 @@ export function useRoom() {
     } finally {
       noiseBusyRef.current = false;
       if (roomRef.current === room) setNoiseBusy(false);
+    }
+  }, [applyNoiseMode]);
+
+  const enableMicrophone = useCallback(async (room: Room) => {
+    if (microphoneBusyRef.current || roomRef.current !== room) return;
+    microphoneBusyRef.current = true;
+    setMicrophoneBusy(true);
+    try {
+      const result = await startMicrophone(room.localParticipant, async () => {
+        const operation = noiseQueue.current.catch(() => {}).then(() => applyNoiseMode(room, noiseModeRef.current));
+        noiseQueue.current = operation;
+        await operation;
+      }, () => roomRef.current === room);
+      if (roomRef.current !== room) return;
+      setState(s => ({ ...s, isMuted: !room.localParticipant.isMicrophoneEnabled, microphoneIssue: result.issue }));
+      if (result.noiseFailed) setNoiseNotice('error');
+    } finally {
+      if (roomRef.current === room) {
+        microphoneBusyRef.current = false;
+        setMicrophoneBusy(false);
+        setNoiseBusy(false);
+      }
     }
   }, [applyNoiseMode]);
 
@@ -216,14 +246,6 @@ export function useRoom() {
 
     await room.connect(url, token);
     if (roomRef.current !== room) { await room.disconnect(); return; }
-    await room.localParticipant.setMicrophoneEnabled(true);
-    if (roomRef.current !== room) { await room.disconnect(); return; }
-    const operation = noiseQueue.current.catch(() => {}).then(() => applyNoiseMode(room, noiseModeRef.current));
-    noiseQueue.current = operation;
-    await operation;
-    if (roomRef.current === room) setNoiseBusy(false);
-    if (roomRef.current !== room) { await room.disconnect(); return; }
-
     const audioTracks: RemoteAudioTrack[] = [];
     for (const p of room.remoteParticipants.values()) {
       for (const pub of p.audioTrackPublications.values()) {
@@ -237,10 +259,12 @@ export function useRoom() {
       canPlaybackAudio: room.canPlaybackAudio,
       participants: getAll(),
       activeSpeakerIds: new Set(),
-      isMuted: false,
+      isMuted: !room.localParticipant.isMicrophoneEnabled,
+      microphoneIssue: null,
       audioTracks,
     }));
-  }, [applyNoiseMode]);
+    await enableMicrophone(room);
+  }, [enableMicrophone]);
 
   const startAudio = useCallback(async () => {
     await roomRef.current?.startAudio();
@@ -251,12 +275,14 @@ export function useRoom() {
     roomRef.current = null;
     room?.removeAllListeners();
     void room?.disconnect();
+    microphoneBusyRef.current = false;
+    setMicrophoneBusy(false);
     setState(DISCONNECTED);
   }, []);
 
   const beginMicrophoneTest = useCallback(async () => {
     const room = roomRef.current;
-    if (!room || room.state !== ConnectionState.Connected || testMuteRef.current) throw new Error('Call unavailable');
+    if (!room || room.state !== ConnectionState.Connected || testMuteRef.current || microphoneBusyRef.current) throw new Error('Call unavailable');
     const token = {};
     testMuteRef.current = token;
     setIsTestingMicrophone(true);
@@ -284,13 +310,27 @@ export function useRoom() {
   }, []);
 
   const toggleMute = useCallback(async () => {
-    if (testMuteRef.current) return;
+    if (testMuteRef.current || microphoneBusyRef.current || noiseBusyRef.current) return;
     const room = roomRef.current;
-    if (!room) return;
-    const enabled = room.localParticipant.isMicrophoneEnabled;
-    await room.localParticipant.setMicrophoneEnabled(!enabled);
-    setState((s) => ({ ...s, isMuted: enabled }));
-  }, []);
+    if (!room || room.state !== ConnectionState.Connected) return;
+    if (!room.localParticipant.isMicrophoneEnabled) {
+      await enableMicrophone(room);
+      return;
+    }
+    microphoneBusyRef.current = true;
+    setMicrophoneBusy(true);
+    try {
+      await room.localParticipant.setMicrophoneEnabled(false);
+      if (roomRef.current === room) setState(s => ({ ...s, isMuted: true, microphoneIssue: null }));
+    } catch (error) {
+      if (roomRef.current === room) setState(s => ({ ...s, isMuted: !room.localParticipant.isMicrophoneEnabled, microphoneIssue: microphoneIssue(error) }));
+    } finally {
+      if (roomRef.current === room) {
+        microphoneBusyRef.current = false;
+        setMicrophoneBusy(false);
+      }
+    }
+  }, [enableMicrophone]);
 
   const sendMessage = useCallback(async (text: string) => {
     const room = roomRef.current;
@@ -325,5 +365,5 @@ export function useRoom() {
     [],
   );
 
-  return { startAudio, beginMicrophoneTest, isTestingMicrophone, state, connect, disconnect, toggleMute, sendMessage, noiseMode, noiseBusy, noiseNotice, changeNoiseMode };
+  return { microphoneBusy, startAudio, beginMicrophoneTest, isTestingMicrophone, state, connect, disconnect, toggleMute, sendMessage, noiseMode, noiseBusy, noiseNotice, changeNoiseMode };
 }

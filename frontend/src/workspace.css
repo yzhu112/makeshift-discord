@@ -120,6 +120,8 @@
 .call-self small { font-size: 10px; color: var(--muted-foreground); display: block; margin-top: 3px; }
 .call-control-buttons { display: flex; gap: 9px; }
 .call-mobile-chat[data-slot="button"] { display: none; }
+.call-mute { white-space: normal; line-height: 1.35; min-width: 0; }
+.call-mute span { min-width: 0; overflow-wrap: anywhere; }
 .call-mute[aria-pressed="true"] { background: var(--muted); }
 .call-leave[data-slot="button"] { border: 1px solid color-mix(in srgb, var(--destructive) 25%, transparent); }
 .chat-section { display: flex; flex-direction: column; flex: 1; min-height: 0; }
