@@ -38,6 +38,7 @@ export type RoomState = {
   canPlaybackAudio: boolean;
   participants: Participant[];
   activeSpeakerIds: Set<string>;
+  lastSpoke: Map<string, number>;
   isMuted: boolean;
   microphoneIssue: MicrophoneIssue | null;
   audioTracks: RemoteAudioTrack[];
@@ -49,6 +50,7 @@ const DISCONNECTED: RoomState = {
   canPlaybackAudio: true,
   participants: [],
   activeSpeakerIds: new Set(),
+  lastSpoke: new Map(),
   isMuted: true,
   microphoneIssue: null,
   audioTracks: [],
@@ -190,15 +192,25 @@ export function useRoom() {
       .on(RoomEvent.ParticipantConnected, () =>
         setState((s) => ({ ...s, participants: getAll() })),
       )
-      .on(RoomEvent.ParticipantDisconnected, () =>
-        setState((s) => ({ ...s, participants: getAll() })),
+      .on(RoomEvent.ParticipantDisconnected, (participant) =>
+        setState((s) => {
+          const lastSpoke = new Map(s.lastSpoke);
+          lastSpoke.delete(participant.identity);
+          const activeSpeakerIds = new Set(s.activeSpeakerIds);
+          activeSpeakerIds.delete(participant.identity);
+          return { ...s, participants: getAll(), lastSpoke, activeSpeakerIds };
+        }),
       )
-      .on(RoomEvent.ActiveSpeakersChanged, (speakers) =>
-        setState((s) => ({
-          ...s,
-          activeSpeakerIds: new Set(speakers.map((p) => p.identity)),
-        })),
-      )
+      .on(RoomEvent.ActiveSpeakersChanged, (speakers) => {
+        const now = performance.now();
+        setState((s) => {
+          const lastSpoke = new Map(s.lastSpoke);
+          // Include speakers who just stopped: their last speech happened now too.
+          for (const identity of s.activeSpeakerIds) lastSpoke.set(identity, now);
+          for (const participant of speakers) lastSpoke.set(participant.identity, now);
+          return { ...s, lastSpoke, activeSpeakerIds: new Set(speakers.map(p => p.identity)) };
+        });
+      })
       .on(RoomEvent.TrackMuted, () =>
         setState((s) => ({ ...s, participants: getAll() })),
       )

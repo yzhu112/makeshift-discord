@@ -1,4 +1,4 @@
-import type { FormEvent } from 'react';
+import type { CSSProperties, FormEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import type { Participant, RemoteAudioTrack } from 'livekit-client';
 import { ConnectionState } from 'livekit-client';
@@ -22,6 +22,7 @@ import { useT } from '@/i18n/I18nProvider';
 import { cn } from '@/lib/utils';
 import type { ChatMessage } from './useRoom';
 import { useRoom } from './useRoom';
+import { participantLayout, visibleParticipants } from './participantLayout';
 import { ParticipantVolume } from './ParticipantVolume';
 import { participantVolumeKey, savedParticipantVolume } from '@/audio/participantVolume';
 import { CallTelemetry, errorDetails } from '@/diagnostics/telemetry';
@@ -45,6 +46,20 @@ export function RoomView({ user, roomName, onLeave }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<'people' | 'chat'>('people');
   const [chatOpen, setChatOpen] = useState(false);
+  const [peopleOpen, setPeopleOpen] = useState(false);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [gridWidth, setGridWidth] = useState(0);
+  const visible = visibleParticipants(state.participants, state.activeSpeakerIds, state.lastSpoke);
+  const hiddenCount = state.participants.length - visible.length;
+  const tileCount = visible.length + (hiddenCount > 0 ? 1 : 0);
+  const layout = participantLayout(tileCount, gridWidth);
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+    const observer = new ResizeObserver(([entry]) => setGridWidth(entry.contentRect.width));
+    observer.observe(grid);
+    return () => observer.disconnect();
+  }, [tileCount > 0]);
   const [seenCount, setSeenCount] = useState(0);
   const room = user.rooms.find((r) => r.name === roomName);
   const unread = state.messages.length - seenCount;
@@ -134,13 +149,24 @@ export function RoomView({ user, roomName, onLeave }: Props) {
             {count === 0 ? (
               <div className="app-empty call-empty"><Volume2 size={28} strokeWidth={1.4} /><p>{isConnecting ? t('room.status.joining') : t('room.status.cannotConnect')}</p></div>
             ) : (
-              <div className="participant-grid">
-                {state.participants.map(p => (
-                  <ParticipantTile key={p.identity} participant={p} isLocal={p.identity === user.username}
+              <div ref={gridRef} className="participant-grid" style={{
+                '--participant-columns': layout.columns, '--participant-rows': layout.rows,
+              } as CSSProperties}>
+                {visible.map((p, index) => (
+                  <ParticipantTile key={p.identity} style={{ gridColumn: `${layout.starts[index]} / span 2` }} participant={p} isLocal={p.identity === user.username}
                     isSpeaking={state.activeSpeakerIds.has(p.identity)}
                     isMuted={p.identity === user.username ? state.isMuted : !p.isMicrophoneEnabled}
                     youLabel={t('room.you')} volume={getVolume(p.identity)} onVolumeChange={volume => changeVolume(p.identity, volume)} />
                 ))}
+                {hiddenCount > 0 && (
+                  <button type="button" className="participant-tile participant-more"
+                    style={{ gridColumn: `${layout.starts[tileCount - 1]} / span 2` }}
+                    onClick={() => setPeopleOpen(true)} aria-haspopup="dialog">
+                    <Users size={28} strokeWidth={1.4} aria-hidden="true" />
+                    <strong>{t('room.people.more', { count: hiddenCount })}</strong>
+                    <span>{t('room.people.viewAll')}</span>
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -175,6 +201,22 @@ export function RoomView({ user, roomName, onLeave }: Props) {
           <Button variant="destructive" onClick={handleLeave} className="app-button call-leave"><PhoneOff size={16} />{t('room.action.leave')}</Button>
         </div>
       </footer>
+      <Dialog open={peopleOpen} onOpenChange={setPeopleOpen}>
+        <DialogContent animated={false} className="workspace people-dialog" aria-describedby={undefined}>
+          <DialogTitle>{t('room.people.viewAll')}</DialogTitle>
+          <div className="people-dialog-list">
+            {state.participants.map(p => (
+              <div className="people-dialog-entry" key={p.identity}>
+                <ParticipantRow participant={p} isLocal={p.identity === user.username}
+                  isSpeaking={state.activeSpeakerIds.has(p.identity)}
+                  isMuted={p.identity === user.username ? state.isMuted : !p.isMicrophoneEnabled} youLabel={t('room.you')} />
+                {p.identity !== user.username && <ParticipantVolume identity={p.identity} volume={getVolume(p.identity)}
+                  onChange={volume => changeVolume(p.identity, volume)} />}
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
       <Dialog open={chatOpen} onOpenChange={setChatOpen}>
         <DialogContent animated={false} className="workspace mobile-chat-dialog" aria-describedby={undefined}>
           <div className="mobile-chat-heading"><MessageSquare size={16} /><DialogTitle>{t('room.tab.chat')}</DialogTitle></div>
@@ -186,6 +228,7 @@ export function RoomView({ user, roomName, onLeave }: Props) {
 }
 
 function ParticipantTile({
+  style,
   participant,
   isLocal,
   isSpeaking,
@@ -194,6 +237,7 @@ function ParticipantTile({
   volume,
   onVolumeChange,
 }: {
+  style?: CSSProperties;
   participant: Participant;
   isLocal: boolean;
   isSpeaking: boolean;
@@ -205,10 +249,10 @@ function ParticipantTile({
   const initial = (participant.identity[0] ?? '?').toUpperCase();
   const t = useT();
   return (
-    <div className={cn('participant-tile', isSpeaking && !isMuted && 'speaking')}>
+    <div style={style} className={cn('participant-tile', isSpeaking && !isMuted && 'speaking')}>
       <div className="participant-tile-top"><span>{isLocal ? t('ui.you') : t('ui.participant')}</span><span aria-label={t(isMuted ? 'ui.micMuted' : 'ui.micOn')}>{isMuted ? <MicOff size={14} /> : <Mic size={14} />}</span></div>
       <div className="participant-avatar">{initial}</div>
-      <div className="participant-tile-bottom"><strong>{participant.identity}{isLocal && <small> {youLabel}</small>}</strong><span className="participant-status">{t(isMuted ? 'ui.micMuted' : isSpeaking ? 'ui.speaking' : 'ui.listening')}</span></div>
+      <div className="participant-tile-bottom"><strong title={participant.identity}>{participant.identity}{isLocal && <small> {youLabel}</small>}</strong><span className="participant-status">{t(isMuted ? 'ui.micMuted' : isSpeaking ? 'ui.speaking' : 'ui.listening')}</span></div>
       {!isLocal && <ParticipantVolume identity={participant.identity} volume={volume} onChange={onVolumeChange} />}
     </div>
   );
