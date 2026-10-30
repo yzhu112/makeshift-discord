@@ -2,16 +2,8 @@ import type { FormEvent } from 'react';
 import { useState } from 'react';
 import { ApiError } from '@/api';
 import { useAuth } from '@/auth/AuthProvider';
-import { SettingsBar } from '@/components/SettingsBar';
+import { AppHeader } from '@/components/AppHeader';
 import { Button } from '@/components/ui/button';
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardFooter,
-	CardHeader,
-	CardTitle,
-} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useT } from '@/i18n/I18nProvider';
@@ -23,43 +15,26 @@ export function AuthGate() {
 	const t = useT();
 
 	return (
-		<div className="flex min-h-svh flex-col bg-background sm:items-center sm:justify-center sm:px-4 sm:py-12">
-			<SettingsBar floating />
-			<Card className="flex w-full flex-1 flex-col gap-0 overflow-hidden rounded-none py-0 shadow-none ring-0 sm:max-w-sm sm:flex-none sm:rounded-xl sm:shadow-sm sm:ring-1">
-				<CardHeader className="space-y-3 border-b bg-muted/40 px-6 pb-7 pt-[max(env(safe-area-inset-top),1.75rem)] text-center sm:py-7">
-					<p className="text-[10px] font-medium tracking-[0.22em] text-muted-foreground uppercase">
-						{t('auth.brand')}
-					</p>
-					<div className="flex justify-center pt-1">
-						<CardTitle className="flex size-20 items-center justify-center rounded-full bg-primary font-heading text-2xl font-normal italic text-primary-foreground shadow-sm">
-							DC.
-						</CardTitle>
-					</div>
-					<CardDescription className="text-sm">
-						{mode === 'login'
-							? t('auth.welcome.login')
-							: t('auth.welcome.signup')}
-					</CardDescription>
-				</CardHeader>
-
-				<CardContent className="flex-1 px-6 pt-6 pb-2 sm:flex-none">
-					{mode === 'login' ? <LoginForm /> : <SignupForm />}
-				</CardContent>
-
-				<CardFooter className="justify-center px-6 pt-2 pb-[max(env(safe-area-inset-bottom),1.5rem)] sm:pb-6">
-					<button
-						type="button"
-						onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
-						className="text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
-					>
-						{mode === 'login'
-							? t('auth.switch.toSignup')
-							: t('auth.switch.toLogin')}
-					</button>
-				</CardFooter>
-			</Card>
-		</div>
-	);
+    <div className="workspace auth-page">
+      <AppHeader section={t('ui.account')} />
+      <main className="auth-main">
+        <div className="auth-intro">
+          <p className="app-eyebrow">{t('ui.voiceWorkspace')}</p>
+          <h1>{t(mode === 'login' ? 'auth.action.login' : 'auth.action.signup')}</h1>
+          <p>{t(mode === 'login' ? 'auth.welcome.login' : 'auth.welcome.signup')}</p>
+        </div>
+        <section className="auth-panel" aria-label={t(mode === 'login' ? 'auth.action.login' : 'auth.action.signup')}>
+          {mode === 'login' ? <LoginForm /> : <SignupForm />}
+          <div className="auth-switch">
+            <button type="button" onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}>
+              {t(mode === 'login' ? 'auth.switch.toSignup' : 'auth.switch.toLogin')}
+            </button>
+          </div>
+        </section>
+        <p className="auth-caption">{t('ui.authCaption')}</p>
+      </main>
+    </div>
+  );
 }
 
 function LoginForm() {
@@ -84,7 +59,7 @@ function LoginForm() {
 	}
 
 	return (
-		<form onSubmit={onSubmit} className="space-y-5">
+		<form onSubmit={onSubmit} className="app-form">
 			<div className="space-y-2">
 				<Label htmlFor="login-username">{t('auth.field.username')}</Label>
 				<Input
@@ -115,7 +90,7 @@ function LoginForm() {
 			)}
 			<Button
 				type="submit"
-				className="h-12 w-full text-sm sm:h-10"
+				className="app-button app-button-primary w-full"
 				disabled={submitting}
 			>
 				{submitting ? t('auth.action.login.loading') : t('auth.action.login')}
@@ -147,7 +122,7 @@ function SignupForm() {
 	}
 
 	return (
-		<form onSubmit={onSubmit} className="space-y-5">
+		<form onSubmit={onSubmit} className="app-form">
 			<div className="space-y-2">
 				<Label htmlFor="signup-username">{t('auth.field.username')}</Label>
 				<Input
@@ -189,7 +164,7 @@ function SignupForm() {
 			)}
 			<Button
 				type="submit"
-				className="h-12 w-full text-sm sm:h-10"
+				className="app-button app-button-primary w-full"
 				disabled={submitting}
 			>
 				{submitting ? t('auth.action.signup.loading') : t('auth.action.signup')}

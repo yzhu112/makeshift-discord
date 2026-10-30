@@ -9,12 +9,13 @@ import {
   PhoneOff,
   Send,
   Users,
-  X,
+  Volume2,
 } from 'lucide-react';
 import { ApiError, api } from '@/api';
 import type { User } from '@/api';
 import { CopyCode } from '@/components/CopyCode';
-import { SettingsBar } from '@/components/SettingsBar';
+import { AppHeader } from '@/components/AppHeader';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useT } from '@/i18n/I18nProvider';
@@ -22,7 +23,6 @@ import { cn } from '@/lib/utils';
 import type { ChatMessage } from './useRoom';
 import { useRoom } from './useRoom';
 import { CallTelemetry, errorDetails } from '@/diagnostics/telemetry';
-import { DiagnosticsLink } from '@/diagnostics/DiagnosticsLink';
 
 type Props = {
   user: User;
@@ -75,7 +75,6 @@ export function RoomView({ user, roomName, onLeave }: Props) {
     };
   }, [roomName, user.id, connect, disconnect]);
 
-  // Mark messages as read while the chat is on screen (desktop tab or mobile sheet).
   useEffect(() => {
     if (tab === 'chat' || chatOpen) setSeenCount(state.messages.length);
   }, [tab, chatOpen, state.messages.length]);
@@ -87,204 +86,79 @@ export function RoomView({ user, roomName, onLeave }: Props) {
 
   const isConnected = state.connectionState === ConnectionState.Connected;
   const isReconnecting = state.connectionState === ConnectionState.Reconnecting;
-  const isConnecting =
-    state.connectionState === ConnectionState.Connecting || isReconnecting;
-
+  const isConnecting = state.connectionState === ConnectionState.Connecting || isReconnecting;
   const count = state.participants.length;
-  const cols = count <= 1 ? 1 : count <= 4 ? 2 : count <= 9 ? 3 : 4;
-  const rows = Math.ceil(count / cols);
+  const connectionLabel = error ? t('room.status.cannotConnect') : isReconnecting ? t('room.status.reconnecting') : isConnected ? t('ui.connected') : isConnecting ? t('room.status.connecting') : t('ui.disconnected');
 
   return (
-    <div className="flex h-svh flex-col bg-background">
-      {state.audioTracks.map((track) => (
-        <RemoteAudio key={track.sid} track={track} />
-      ))}
-
-      {/* Header */}
-      <header className="flex min-h-12 shrink-0 items-center justify-between border-b px-3 pt-[env(safe-area-inset-top)] sm:min-h-11 sm:px-4 sm:pt-0">
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="truncate text-sm font-medium text-foreground"># {roomName}</span>
-          <span
-            className={cn(
-              'h-1.5 w-1.5 shrink-0 rounded-full transition-colors',
-              isConnected
-                ? 'bg-emerald-500'
-                : isConnecting
-                  ? 'animate-pulse bg-amber-400'
-                  : 'bg-muted-foreground',
-            )}
-          />
-          {isReconnecting && (
-            <span className="hidden text-xs text-amber-500 sm:inline">{t('room.status.reconnecting')}</span>
-          )}
-          {!isReconnecting && isConnecting && (
-            <span className="hidden text-xs text-muted-foreground sm:inline">{t('room.status.connecting')}</span>
-          )}
-          {error && <span className="hidden text-xs text-destructive sm:inline">{error}</span>}
-        </div>
-        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-          {room?.code && <CopyCode code={room.code} />}
-          <button
-            type="button"
-            onClick={() => setChatOpen(true)}
-            aria-label={t('room.chat.open')}
-            className="relative inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground md:hidden"
-          >
-            <MessageSquare className="h-4 w-4" />
-            {unread > 0 && (
-              <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary ring-2 ring-background" />
-            )}
-          </button>
-          <SettingsBar audio={{ mode: noiseMode, busy: noiseBusy || !isConnected, onChange: changeNoiseMode, beginTest: beginMicrophoneTest }} />
-          <DiagnosticsLink />
-          <span className="hidden h-6 items-center rounded-full bg-muted px-2.5 text-[11px] font-medium text-muted-foreground sm:flex">
-            {user.username}
-          </span>
-        </div>
-      </header>
-
-      {/* Body */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Participant grid */}
-        <main className="flex flex-1 overflow-hidden p-3 sm:p-4">
-          {count === 0 ? (
-            <div className="flex flex-1 items-center justify-center">
-              <p className="text-sm text-muted-foreground">
-                {isConnecting
-                  ? t('room.status.joining')
-                  : error
-                    ? t('room.status.cannotConnect')
-                    : ''}
-              </p>
+    <div className="workspace call-page">
+      {state.audioTracks.map(track => <RemoteAudio key={track.sid} track={track} />)}
+      <AppHeader section={roomName} username={user.username} audio={{ mode: noiseMode, busy: noiseBusy || !isConnected, onChange: changeNoiseMode, beginTest: beginMicrophoneTest }} />
+      <div className="call-layout">
+        <main className="call-main">
+          <div className="call-heading">
+            <div>
+              <p className="app-eyebrow">{t('ui.voiceChannel')}</p>
+              <h1>{roomName}</h1>
+              <div className="call-meta">
+                <span className={`call-connection ${isConnected && !error ? 'connected' : ''}`} role="status"><i />{connectionLabel}</span>
+                <span>{t('room.sidebar.inRoom', { count })}</span>
+              </div>
             </div>
-          ) : (
-            <div
-              className="grid w-full gap-3"
-              style={{
-                gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-                gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
-              }}
-            >
-              {state.participants.map((p) => {
-                const isLocal = p.identity === user.username;
-                const isSpeaking = state.activeSpeakerIds.has(p.identity);
-                const isMuted = isLocal ? state.isMuted : !p.isMicrophoneEnabled;
-                return (
-                  <ParticipantTile
-                    key={p.identity}
-                    participant={p}
-                    isLocal={isLocal}
-                    isSpeaking={isSpeaking}
-                    isMuted={isMuted}
-                    youLabel={t('room.you')}
-                  />
-                );
-              })}
-            </div>
-          )}
+            {room?.code && <div className="call-share"><CopyCode code={room.code} /></div>}
+          </div>
+          {error && <p role="alert" className="call-notice call-error">{error}</p>}
+          <div className="call-stage">
+            {count === 0 ? (
+              <div className="app-empty call-empty"><Volume2 size={28} strokeWidth={1.4} /><p>{isConnecting ? t('room.status.joining') : t('room.status.cannotConnect')}</p></div>
+            ) : (
+              <div className="participant-grid">
+                {state.participants.map(p => (
+                  <ParticipantTile key={p.identity} participant={p} isLocal={p.identity === user.username}
+                    isSpeaking={state.activeSpeakerIds.has(p.identity)}
+                    isMuted={p.identity === user.username ? state.isMuted : !p.isMicrophoneEnabled}
+                    youLabel={t('room.you')} />
+                ))}
+              </div>
+            )}
+          </div>
+          {noiseNotice && <p role="status" className="call-notice">{t(noiseNotice === 'fallback' ? 'room.noise.fallback' : noiseNotice === 'restore' ? 'audio.restoreError' : 'room.noise.error')}</p>}
         </main>
-
-        {/* Sidebar — tabbed: participants / chat */}
-        <aside className="hidden w-72 shrink-0 flex-col border-l md:flex">
-          <div className="flex shrink-0 border-b">
-            <SidebarTab
-              active={tab === 'people'}
-              onClick={() => setTab('people')}
-              icon={<Users className="h-3.5 w-3.5" />}
-              label={t('room.tab.people')}
-              badge={count}
-            />
-            <SidebarTab
-              active={tab === 'chat'}
-              onClick={() => setTab('chat')}
-              icon={<MessageSquare className="h-3.5 w-3.5" />}
-              label={t('room.tab.chat')}
-              dot={unread > 0}
-            />
+        <aside className="call-sidebar" aria-label={t('room.tab.people')}>
+          <div className="call-tabs">
+            <SidebarTab active={tab === 'people'} onClick={() => setTab('people')} icon={<Users size={14} />} label={t('room.tab.people')} badge={count} />
+            <SidebarTab active={tab === 'chat'} onClick={() => setTab('chat')} icon={<MessageSquare size={14} />} label={t('room.tab.chat')} dot={unread > 0} />
           </div>
           {tab === 'people' ? (
-            <div className="flex-1 overflow-y-auto px-2 py-2">
-              {state.participants.map((p) => {
-                const isLocal = p.identity === user.username;
-                const isSpeaking = state.activeSpeakerIds.has(p.identity);
-                const isMuted = isLocal ? state.isMuted : !p.isMicrophoneEnabled;
-                return (
-                  <ParticipantRow
-                    key={p.identity}
-                    participant={p}
-                    isLocal={isLocal}
-                    isSpeaking={isSpeaking}
-                    isMuted={isMuted}
-                    youLabel={t('room.you')}
-                  />
-                );
-              })}
+            <div className="participant-list">
+              <p className="app-eyebrow">{t('room.sidebar.inRoom', { count })}</p>
+              {state.participants.map(p => (
+                <ParticipantRow key={p.identity} participant={p} isLocal={p.identity === user.username}
+                  isSpeaking={state.activeSpeakerIds.has(p.identity)}
+                  isMuted={p.identity === user.username ? state.isMuted : !p.isMicrophoneEnabled} youLabel={t('room.you')} />
+              ))}
             </div>
-          ) : (
-            <ChatSection
-              messages={state.messages}
-              currentUser={user.username}
-              onSend={sendMessage}
-            />
-          )}
+          ) : <ChatSection messages={state.messages} currentUser={user.username} onSend={sendMessage} />}
         </aside>
       </div>
-
-      {noiseNotice && (
-        <p role="status" className="border-t px-3 py-2 text-center text-xs text-muted-foreground">
-          {t(noiseNotice === 'fallback' ? 'room.noise.fallback' : noiseNotice === 'restore' ? 'audio.restoreError' : 'room.noise.error')}
-        </p>
-      )}
-      {/* Controls */}
-      <footer className="flex shrink-0 items-center justify-center gap-3 border-t bg-muted/20 px-3 pt-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] sm:h-16 sm:gap-2.5 sm:py-0">
-        <Button
-          disabled={!isConnected || noiseBusy || isTestingMicrophone}
-          variant={state.isMuted ? 'secondary' : 'outline'}
-          size="icon"
-          onClick={toggleMute}
-          className="h-14 w-14 rounded-full sm:h-9 sm:w-9"
-          title={state.isMuted ? t('room.action.unmute') : t('room.action.mute')}
-        >
-          {state.isMuted ? (
-            <MicOff className="h-5 w-5 sm:h-3.5 sm:w-3.5" />
-          ) : (
-            <Mic className="h-5 w-5 sm:h-3.5 sm:w-3.5" />
-          )}
-        </Button>
-        <Button
-          variant="destructive"
-          size="icon"
-          onClick={handleLeave}
-          className="h-14 w-14 rounded-full sm:h-9 sm:w-9"
-          title={t('room.action.leave')}
-        >
-          <PhoneOff className="h-5 w-5 sm:h-3.5 sm:w-3.5" />
-        </Button>
-      </footer>
-
-      {/* Mobile chat sheet */}
-      {chatOpen && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-background md:hidden">
-          <div className="flex min-h-12 shrink-0 items-center justify-between border-b px-3 pt-[env(safe-area-inset-top)]">
-            <span className="text-sm font-medium text-foreground">
-              {t('room.tab.chat')}
-            </span>
-            <button
-              type="button"
-              onClick={() => setChatOpen(false)}
-              aria-label={t('room.chat.close')}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-          <ChatSection
-            messages={state.messages}
-            currentUser={user.username}
-            onSend={sendMessage}
-          />
+      <footer className="call-controls">
+        <div className="call-self"><span className="self-avatar">{user.username.slice(0, 1).toUpperCase()}</span><div><strong>{user.username}</strong><small>{t(isTestingMicrophone ? 'audio.micTest' : state.isMuted ? 'ui.micMuted' : 'ui.micOn')}</small></div></div>
+        <div className="call-control-buttons">
+          <Button disabled={!isConnected || noiseBusy || isTestingMicrophone} variant="outline" onClick={() => void toggleMute().catch(() => setError(t('ui.micError')))} className="app-button call-mute" aria-pressed={state.isMuted}>
+            {state.isMuted ? <MicOff size={16} /> : <Mic size={16} />}{t(state.isMuted ? 'room.action.unmute' : 'room.action.mute')}
+          </Button>
+          <Button variant="outline" onClick={() => setChatOpen(true)} className="app-button call-mobile-chat" aria-label={t('room.chat.open')}>
+            <MessageSquare size={16} /><span>{t('room.tab.chat')}</span>{unread > 0 && <i className="unread-dot" />}
+          </Button>
+          <Button variant="destructive" onClick={handleLeave} className="app-button call-leave"><PhoneOff size={16} />{t('room.action.leave')}</Button>
         </div>
-      )}
+      </footer>
+      <Dialog open={chatOpen} onOpenChange={setChatOpen}>
+        <DialogContent animated={false} className="workspace mobile-chat-dialog" aria-describedby={undefined}>
+          <div className="mobile-chat-heading"><MessageSquare size={16} /><DialogTitle>{t('room.tab.chat')}</DialogTitle></div>
+          <ChatSection messages={state.messages} currentUser={user.username} onSend={sendMessage} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -303,39 +177,12 @@ function ParticipantTile({
   youLabel: string;
 }) {
   const initial = (participant.identity[0] ?? '?').toUpperCase();
-
+  const t = useT();
   return (
-    <div
-      className={cn(
-        'relative flex flex-col items-center justify-center rounded-xl border bg-card transition-all duration-150',
-        isSpeaking
-          ? 'border-primary/40 ring-2 ring-primary ring-offset-2 ring-offset-background'
-          : 'border-border',
-      )}
-    >
-      <div
-        className={cn(
-          'flex h-14 w-14 items-center justify-center rounded-full bg-primary font-heading text-2xl font-normal italic text-primary-foreground transition-transform duration-150',
-          isSpeaking && 'scale-110',
-        )}
-      >
-        {initial}
-      </div>
-
-      <p className="mt-3 text-sm font-medium text-foreground">
-        {participant.identity}
-        {isLocal && (
-          <span className="ml-1 text-xs font-normal text-muted-foreground">
-            {youLabel}
-          </span>
-        )}
-      </p>
-
-      {isMuted && (
-        <div className="absolute bottom-2.5 right-2.5 flex h-5 w-5 items-center justify-center rounded-full bg-muted">
-          <MicOff className="h-2.5 w-2.5 text-muted-foreground" />
-        </div>
-      )}
+    <div className={cn('participant-tile', isSpeaking && !isMuted && 'speaking')}>
+      <div className="participant-tile-top"><span>{isLocal ? t('ui.you') : t('ui.participant')}</span><span aria-label={t(isMuted ? 'ui.micMuted' : 'ui.micOn')}>{isMuted ? <MicOff size={14} /> : <Mic size={14} />}</span></div>
+      <div className="participant-avatar">{initial}</div>
+      <div className="participant-tile-bottom"><strong>{participant.identity}{isLocal && <small> {youLabel}</small>}</strong><span className="participant-status">{t(isMuted ? 'ui.micMuted' : isSpeaking ? 'ui.speaking' : 'ui.listening')}</span></div>
     </div>
   );
 }
@@ -354,29 +201,12 @@ function ParticipantRow({
   youLabel: string;
 }) {
   const initial = (participant.identity[0] ?? '?').toUpperCase();
-
+  const t = useT();
   return (
-    <div className="flex items-center gap-2.5 rounded-md px-2 py-1.5 transition-colors hover:bg-muted/50">
-      <div
-        className={cn(
-          'relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-medium transition-all duration-150',
-          isSpeaking
-            ? 'bg-primary text-primary-foreground'
-            : 'bg-primary/10 text-primary',
-        )}
-      >
-        {initial}
-        {isSpeaking && (
-          <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-background" />
-        )}
-      </div>
-      <span className="flex-1 truncate text-xs font-medium text-foreground">
-        {participant.identity}
-        {isLocal && (
-          <span className="ml-1 font-normal text-muted-foreground">{youLabel}</span>
-        )}
-      </span>
-      {isMuted && <MicOff className="h-3 w-3 shrink-0 text-muted-foreground" />}
+    <div className={cn('participant-row', isSpeaking && !isMuted && 'speaking')}>
+      <span className="participant-row-avatar">{initial}</span>
+      <span className="participant-row-name">{participant.identity}{isLocal && <small> {youLabel}</small>}</span>
+      <span aria-label={t(isMuted ? 'ui.micMuted' : 'ui.micOn')}>{isMuted ? <MicOff size={13} /> : <Mic size={13} />}</span>
     </div>
   );
 }
@@ -397,26 +227,8 @@ function SidebarTab({
   dot?: boolean;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        'relative flex flex-1 items-center justify-center gap-1.5 border-b-2 px-3 py-2.5 text-xs font-medium transition-colors',
-        active
-          ? 'border-primary text-foreground'
-          : 'border-transparent text-muted-foreground hover:text-foreground',
-      )}
-    >
-      {icon}
-      {label}
-      {badge != null && badge > 0 && (
-        <span className="rounded-full bg-muted px-1.5 text-[10px] text-muted-foreground">
-          {badge}
-        </span>
-      )}
-      {dot && (
-        <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary" />
-      )}
+    <button type="button" onClick={onClick} aria-pressed={active} className={cn('call-tab', active && 'selected')}>
+      {icon}{label}{badge != null && <span className="app-count">{badge}</span>}{dot && <i className="unread-dot" />}
     </button>
   );
 }
@@ -455,70 +267,20 @@ function ChatSection({
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex-1 overflow-y-auto px-3 py-3">
-        {messages.length === 0 ? (
-          <p className="px-1 py-2 text-xs text-muted-foreground">
-            {t('room.chat.empty')}
-          </p>
-        ) : (
-          <div className="space-y-2.5">
-            {messages.map((m) => {
-              const mine = m.sender === currentUser;
-              return (
-                <div
-                  key={m.id}
-                  className={cn(
-                    'flex flex-col',
-                    mine ? 'items-end' : 'items-start',
-                  )}
-                >
-                  {!mine && (
-                    <span className="px-1 text-[11px] font-medium text-muted-foreground">
-                      {m.sender}
-                    </span>
-                  )}
-                  <div
-                    className={cn(
-                      'max-w-[85%] rounded-2xl px-3 py-1.5 text-sm whitespace-pre-wrap break-words',
-                      mine
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-foreground',
-                    )}
-                  >
-                    {m.text}
-                  </div>
-                </div>
-              );
-            })}
-            <div ref={endRef} />
+    <div className="chat-section">
+      <div className="chat-messages" role="log" aria-label={t('room.tab.chat')}>
+        {messages.length === 0 ? <div className="chat-empty"><MessageSquare size={22} strokeWidth={1.4} /><p>{t('room.chat.empty')}</p></div> : messages.map(m => (
+          <div key={m.id} className={cn('chat-message', m.sender === currentUser && 'mine')}>
+            <div className="chat-message-heading"><strong>{m.sender}{m.sender === currentUser && <small> {t('room.you')}</small>}</strong><time dateTime={new Date(m.ts).toISOString()}>{new Date(m.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time></div>
+            <p>{m.text}</p>
           </div>
-        )}
+        ))}
+        <div ref={endRef} />
       </div>
-      <form
-        onSubmit={submit}
-        className="flex shrink-0 items-center gap-2 border-t p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] sm:pb-3"
-      >
-        <Input
-          value={text}
-          onChange={(e) => {
-            setText(e.target.value);
-            setFailed(false);
-          }}
-          placeholder={t('room.chat.placeholder')}
-          aria-label={t('room.chat.placeholder')}
-          aria-invalid={failed}
-          className="max-sm:h-12"
-        />
-        <Button
-          type="submit"
-          size="icon"
-          disabled={!text.trim()}
-          aria-label={t('room.chat.send')}
-          className="shrink-0 max-sm:h-12 max-sm:w-12"
-        >
-          <Send className="h-4 w-4" />
-        </Button>
+      {failed && <p role="alert" className="chat-error">{t('ui.chatError')}</p>}
+      <form onSubmit={submit} className="chat-compose">
+        <Input value={text} onChange={e => { setText(e.target.value); setFailed(false); }} placeholder={t('room.chat.placeholder')} aria-label={t('room.chat.placeholder')} aria-invalid={failed} />
+        <Button type="submit" size="icon" disabled={!text.trim()} aria-label={t('room.chat.send')} className="app-button app-button-primary"><Send size={15} /></Button>
       </form>
     </div>
   );
