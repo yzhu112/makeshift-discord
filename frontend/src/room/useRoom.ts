@@ -10,6 +10,7 @@ import {
 } from 'livekit-client';
 
 import { RnnoiseProcessor } from './rnnoise';
+import { PresenceSounds } from '@/audio/PresenceSounds';
 import { muteForMicrophoneTest } from '@/audio/callTestMute';
 import { startMicrophone, microphoneIssue, type MicrophoneIssue } from '@/audio/startMicrophone';
 
@@ -68,6 +69,7 @@ const decoder = new TextDecoder();
 
 export function useRoom() {
   const roomRef = useRef<Room | null>(null);
+  const presenceSoundsRef = useRef<PresenceSounds | null>(null);
   const [microphoneBusy, setMicrophoneBusy] = useState(false);
   const microphoneBusyRef = useRef(false);
   const [noiseMode, setNoiseMode] = useState<NoiseMode>(savedNoiseMode);
@@ -173,7 +175,13 @@ export function useRoom() {
   }, [applyNoiseMode]);
 
   const connect = useCallback(async (url: string, token: string, observe?: (room: Room) => void) => {
-    const room = new Room(ROOM_OPTIONS);
+    const sounds = new PresenceSounds();
+    presenceSoundsRef.current = sounds;
+    const room = new Room({ ...ROOM_OPTIONS, webAudioMix: sounds.context ? { audioContext: sounds.context } : true });
+    let joined = false;
+    const playPresence = (kind: 'join' | 'leave') => {
+      if (joined && roomRef.current === room && room.state === ConnectionState.Connected) sounds.play(kind);
+    };
     roomRef.current = room;
     observe?.(room);
 
@@ -186,21 +194,25 @@ export function useRoom() {
       .on(RoomEvent.AudioPlaybackStatusChanged, () =>
         setState(s => ({ ...s, canPlaybackAudio: room.canPlaybackAudio })),
       )
-      .on(RoomEvent.ConnectionStateChanged, (cs) =>
-        setState((s) => ({ ...s, connectionState: cs })),
-      )
-      .on(RoomEvent.ParticipantConnected, () =>
-        setState((s) => ({ ...s, participants: getAll() })),
-      )
-      .on(RoomEvent.ParticipantDisconnected, (participant) =>
+      .on(RoomEvent.ConnectionStateChanged, (cs) => {
+        if (cs !== ConnectionState.Connected) sounds.silence();
+        setState((s) => ({ ...s, connectionState: cs }));
+      })
+      .on(RoomEvent.Disconnected, () => sounds.close())
+      .on(RoomEvent.ParticipantConnected, () => {
+        playPresence('join');
+        setState((s) => ({ ...s, participants: getAll() }));
+      })
+      .on(RoomEvent.ParticipantDisconnected, (participant) => {
+        playPresence('leave');
         setState((s) => {
           const lastSpoke = new Map(s.lastSpoke);
           lastSpoke.delete(participant.identity);
           const activeSpeakerIds = new Set(s.activeSpeakerIds);
           activeSpeakerIds.delete(participant.identity);
           return { ...s, participants: getAll(), lastSpoke, activeSpeakerIds };
-        }),
-      )
+        });
+      })
       .on(RoomEvent.ActiveSpeakersChanged, (speakers) => {
         const now = performance.now();
         setState((s) => {
@@ -256,7 +268,9 @@ export function useRoom() {
         setState((s) => ({ ...s, messages: [...s.messages, msg] }));
       });
 
-    await room.connect(url, token);
+    try { await room.connect(url, token); }
+    catch (error) { sounds.close(); throw error; }
+    joined = true;
     if (roomRef.current !== room) { await room.disconnect(); return; }
     const audioTracks: RemoteAudioTrack[] = [];
     for (const p of room.remoteParticipants.values()) {
@@ -287,6 +301,8 @@ export function useRoom() {
     roomRef.current = null;
     room?.removeAllListeners();
     void room?.disconnect();
+    presenceSoundsRef.current?.close();
+    presenceSoundsRef.current = null;
     microphoneBusyRef.current = false;
     setMicrophoneBusy(false);
     setState(DISCONNECTED);
@@ -373,6 +389,8 @@ export function useRoom() {
       roomRef.current = null;
       room?.removeAllListeners();
       void room?.disconnect();
+      presenceSoundsRef.current?.close();
+      presenceSoundsRef.current = null;
     },
     [],
   );
