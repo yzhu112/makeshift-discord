@@ -1,21 +1,31 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ConnectionState,
+  type LocalAudioTrack,
   type Participant,
   type RemoteAudioTrack,
   Room,
   RoomEvent,
   Track,
 } from 'livekit-client';
-// import { NoiseGate } from './noiseGate';
+
+import { RnnoiseProcessor } from './rnnoise';
+
+export type NoiseMode = 'rnnoise' | 'browser';
+const NOISE_STORAGE_KEY = 'voice-noise-mode';
+function savedNoiseMode(): NoiseMode {
+  try { return localStorage.getItem(NOISE_STORAGE_KEY) === 'browser' ? 'browser' : 'rnnoise'; }
+  catch { return 'rnnoise'; }
+}
+const captureOptions = (mode: NoiseMode) => ({
+  echoCancellation: true,
+  noiseSuppression: mode === 'browser',
+  voiceIsolation: mode === 'browser',
+  channelCount: 1,
+});
 
 const ROOM_OPTIONS = {
-  audioCaptureDefaults: {
-    echoCancellation: true,
-    noiseSuppression: true,
-    voiceIsolation: true,  // Chrome: isolates voice signal, drops non-voice background
-    channelCount: 1,
-  },
+  audioCaptureDefaults: captureOptions('browser'),
   publishDefaults: {
     audioPreset: { maxBitrate: 96_000 },
     dtx: false,
@@ -59,8 +69,80 @@ const decoder = new TextDecoder();
 
 export function useRoom() {
   const roomRef = useRef<Room | null>(null);
-  // const noiseGateRef = useRef<NoiseGate | null>(null);
+  const [noiseMode, setNoiseMode] = useState<NoiseMode>(savedNoiseMode);
+  const noiseModeRef = useRef(noiseMode);
+  const [noiseBusy, setNoiseBusy] = useState(true);
+  const noiseBusyRef = useRef(false);
+  const noiseQueue = useRef<Promise<void>>(Promise.resolve());
+  const [noiseNotice, setNoiseNotice] = useState<'fallback' | 'error' | null>(null);
   const [state, setState] = useState<RoomState>(DISCONNECTED);
+
+  const applyNoiseMode = useCallback(async (room: Room, mode: NoiseMode) => {
+    if (roomRef.current !== room) return;
+    const track = room.localParticipant.getTrackPublication(Track.Source.Microphone)?.track as LocalAudioTrack | undefined;
+    if (!track) throw new Error('Microphone unavailable');
+    const browserFallback = async () => {
+      if (roomRef.current !== room) return;
+      await track.stopProcessor();
+      if (roomRef.current !== room) return;
+      await track.restartTrack(captureOptions('browser'));
+      if (roomRef.current !== room) { track.stop(); return; }
+      setNoiseMode('browser');
+      setNoiseNotice('fallback');
+    };
+    await track.stopProcessor();
+    if (roomRef.current !== room) return;
+    if (mode === 'rnnoise') {
+      const processor = new RnnoiseProcessor(() => {
+        // Serialize failures with setup and user changes; ignore an obsolete processor.
+        noiseQueue.current = noiseQueue.current.catch(() => {}).then(async () => {
+          if (roomRef.current !== room || track.getProcessor() !== processor) return;
+          noiseBusyRef.current = true;
+          setNoiseBusy(true);
+          try { await browserFallback(); }
+          catch { if (roomRef.current === room) setNoiseNotice('error'); }
+          finally {
+            noiseBusyRef.current = false;
+            if (roomRef.current === room) setNoiseBusy(false);
+          }
+        });
+      });
+      try {
+        await track.restartTrack(captureOptions(mode));
+        if (roomRef.current !== room) { track.stop(); return; }
+        await track.setProcessor(processor);
+      } catch {
+        await processor.destroy();
+        await browserFallback();
+        return;
+      }
+    } else {
+      await track.restartTrack(captureOptions(mode));
+    }
+    if (roomRef.current !== room) { track.stop(); return; }
+    setNoiseMode(mode);
+    setNoiseNotice(null);
+  }, []);
+
+  const changeNoiseMode = useCallback(async (mode: NoiseMode) => {
+    const room = roomRef.current;
+    if (!room || noiseBusyRef.current) return;
+    noiseBusyRef.current = true;
+    setNoiseBusy(true);
+    try {
+      const operation = noiseQueue.current.catch(() => {}).then(() => applyNoiseMode(room, mode));
+      noiseQueue.current = operation;
+      await operation;
+      if (roomRef.current !== room) return;
+      noiseModeRef.current = mode;
+      try { localStorage.setItem(NOISE_STORAGE_KEY, mode); } catch { /* Optional preference. */ }
+    } catch {
+      if (roomRef.current === room) setNoiseNotice('error');
+    } finally {
+      noiseBusyRef.current = false;
+      if (roomRef.current === room) setNoiseBusy(false);
+    }
+  }, [applyNoiseMode]);
 
   const connect = useCallback(async (url: string, token: string, observe?: (room: Room) => void) => {
     const room = new Room(ROOM_OPTIONS);
@@ -137,14 +219,11 @@ export function useRoom() {
     if (roomRef.current !== room) { await room.disconnect(); return; }
     await room.localParticipant.setMicrophoneEnabled(true);
     if (roomRef.current !== room) { await room.disconnect(); return; }
-
-    // Noise gate disabled for now — needs more tuning
-    // const pub = room.localParticipant.getTrackPublication(Track.Source.Microphone);
-    // if (pub?.track) {
-    //   const gate = new NoiseGate();
-    //   noiseGateRef.current = gate;
-    //   await pub.track.setProcessor(gate);
-    // }
+    const operation = noiseQueue.current.catch(() => {}).then(() => applyNoiseMode(room, noiseModeRef.current));
+    noiseQueue.current = operation;
+    await operation;
+    if (roomRef.current === room) setNoiseBusy(false);
+    if (roomRef.current !== room) { await room.disconnect(); return; }
 
     const audioTracks: RemoteAudioTrack[] = [];
     for (const p of room.remoteParticipants.values()) {
@@ -161,14 +240,13 @@ export function useRoom() {
       isMuted: false,
       audioTracks,
     }));
-  }, []);
+  }, [applyNoiseMode]);
 
   const disconnect = useCallback(() => {
     const room = roomRef.current;
     roomRef.current = null;
     room?.removeAllListeners();
     void room?.disconnect();
-    // noiseGateRef.current = null;
     setState(DISCONNECTED);
   }, []);
 
@@ -213,5 +291,5 @@ export function useRoom() {
     [],
   );
 
-  return { state, connect, disconnect, toggleMute, sendMessage };
+  return { state, connect, disconnect, toggleMute, sendMessage, noiseMode, noiseBusy, noiseNotice, changeNoiseMode };
 }

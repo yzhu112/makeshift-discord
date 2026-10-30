@@ -8,6 +8,10 @@ export const LOCALE_LABELS: Record<Locale, string> = {
 };
 
 const en = {
+	'room.noise.label': 'Noise suppression',
+	'room.noise.browser': 'Browser',
+	'room.noise.fallback': 'RNNoise is unavailable. Using browser noise suppression.',
+	'room.noise.error': 'Could not change noise suppression. Please try again.',
 	'settings.theme': 'Theme',
 	'settings.theme.light': 'Light',
 	'settings.theme.dark': 'Dark',
@@ -74,6 +78,10 @@ type MessageKey = keyof typeof en;
 type Dict = Record<MessageKey, string>;
 
 const zh: Dict = {
+	'room.noise.label': '降噪',
+	'room.noise.browser': '浏览器',
+	'room.noise.fallback': 'RNNoise 不可用，已切换至浏览器降噪。',
+	'room.noise.error': '无法切换降噪，请重试。',
 	'settings.theme': '主题',
 	'settings.theme.light': '浅色',
 	'settings.theme.dark': '深色',
@@ -137,6 +145,10 @@ const zh: Dict = {
 };
 
 const ja: Dict = {
+	'room.noise.label': 'ノイズ抑制',
+	'room.noise.browser': 'ブラウザー',
+	'room.noise.fallback': 'RNNoise を利用できないため、ブラウザーのノイズ抑制を使用しています。',
+	'room.noise.error': 'ノイズ抑制を変更できませんでした。もう一度お試しください。',
 	'settings.theme': 'テーマ',
 	'settings.theme.light': 'ライト',
 	'settings.theme.dark': 'ダーク',
