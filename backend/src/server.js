@@ -38,6 +38,16 @@ app.post(
 	express.raw({ type: 'application/webhook+json', limit: '128kb' }),
 	webhook,
 );
+// A 512 KiB PNG needs about 683 KiB as base64, plus the profile JSON fields.
+app.patch('/api/me', express.json({ limit: '1mb' }), (err, _req, res, next) => {
+	if (err.type === 'entity.too.large') {
+		return res.status(413).json({ error: 'Profile request is too large.' });
+	}
+	if (err.type === 'entity.parse.failed') {
+		return res.status(400).json({ error: 'Invalid JSON.' });
+	}
+	next(err);
+});
 app.use(express.json({ limit: '128kb' }));
 app.post('/api/diagnostics/internal', internalReport);
 app.use(cookieParser());

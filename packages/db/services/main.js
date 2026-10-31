@@ -9,6 +9,15 @@ import { rooms } from '../schemas/rooms.js';
 import { sessions } from '../schemas/sessions.js';
 import { users } from '../schemas/users.js';
 
+const profileColumns = {
+	id: users.id,
+	username: users.username,
+	display_name: users.display_name,
+	language: users.language,
+	theme: users.theme,
+	updated_at: users.updated_at,
+};
+
 export function createMainDbService(path) {
 	mkdirSync(dirname(path), { recursive: true });
 	const sqlite = new Database(path);
@@ -76,6 +85,32 @@ export function createMainDbService(path) {
 			.get();
 	}
 
+	function getUserProfile(id, { includeAvatar = false } = {}) {
+		return db
+			.select({
+				...profileColumns,
+				...(includeAvatar ? { avatar: users.avatar } : {}),
+			})
+			.from(users)
+			.where(eq(users.id, id))
+			.get();
+	}
+
+	// Call with a validated partial update. One statement saves all supplied fields
+	// and the timestamp together; omitted columns are left unchanged.
+	function updateUserProfile(id, changes) {
+		const values = {};
+		for (const key of ['display_name', 'avatar', 'language', 'theme']) {
+			if (Object.hasOwn(changes, key)) values[key] = changes[key];
+		}
+		return db
+			.update(users)
+			.set({ ...values, updated_at: Date.now() })
+			.where(eq(users.id, id))
+			.returning(profileColumns)
+			.get();
+	}
+
 	function createRoom(roomName, code) {
 		db.insert(rooms)
 			.values({ name: roomName, code, created_at: Date.now() })
@@ -125,6 +160,8 @@ export function createMainDbService(path) {
 		createUser,
 		getUserByUsername,
 		getUserById,
+		getUserProfile,
+		updateUserProfile,
 		createRoom,
 		getRoomCode,
 		joinRoom,

@@ -3,6 +3,10 @@ import { Router } from 'express';
 import CONFIG from '#config';
 import db from '#db';
 import { LoginSchema, SignupSchema, validate } from './middleware/validate.js';
+import {
+	ProfileIncludeSchema,
+	ProfileUpdateSchema,
+} from './middleware/profile.validation.js';
 import { createSession, destroySession } from './services/session.service.js';
 
 export function requireAuth(req, res, next) {
@@ -59,11 +63,39 @@ authRouter.post('/logout', (req, res) => {
 // ------------------------------------ Authed ------------------------------------
 
 authRouter.get('/me', requireAuth, (req, res) => {
-	const user = db.getUserById(req.session.userId);
+	const include = ProfileIncludeSchema.safeParse(req.query.include);
+	if (!include.success) {
+		return res
+			.status(400)
+			.json({ error: 'Unsupported include. Supported values: avatar.' });
+	}
+	const includeAvatar = include.data?.includes('avatar') ?? false;
+	const user = db.getUserProfile(req.session.userId, { includeAvatar });
 	if (!user) {
 		destroySession(req, res);
 		return res.status(401).json({ error: 'Unauthenticated' });
 	}
 	const rooms = db.getRoomMemberships(req.session.userId);
-	res.status(200).json({ ...user, rooms });
+	res.status(200).json({
+		...user,
+		...(includeAvatar
+			? { avatar: user.avatar?.toString('base64') ?? null }
+			: {}),
+		rooms,
+	});
 });
+
+authRouter.patch(
+	'/me',
+	requireAuth,
+	validate(ProfileUpdateSchema),
+	(req, res) => {
+		const user = db.updateUserProfile(req.session.userId, req.body);
+		if (!user) {
+			destroySession(req, res);
+			return res.status(401).json({ error: 'Unauthenticated' });
+		}
+		const rooms = db.getRoomMemberships(req.session.userId);
+		res.status(200).json({ ...user, rooms });
+	},
+);
