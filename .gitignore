@@ -4,3 +4,4 @@ infra/livekit.prod.yaml
 
 # Local voice-server automation, credentials, and backups
 /voice/
+/backup/

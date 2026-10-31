@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY backend/package.json ./backend/
+COPY packages/db ./packages/db
 RUN NODE_ENV=production pnpm install --frozen-lockfile --filter backend
 RUN NODE_ENV=production pnpm deploy --filter=backend --prod --legacy /app/deploy
 
@@ -16,7 +17,6 @@ COPY --from=build /app/deploy/node_modules ./node_modules
 COPY backend/package.json ./package.json
 COPY backend/src ./src
 COPY backend/seed ./seed
-COPY backend/migrations ./migrations
 ENV NODE_ENV=production
 ENV PORT=3000
 EXPOSE 3000

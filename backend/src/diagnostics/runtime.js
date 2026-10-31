@@ -4,10 +4,10 @@ import net from 'node:net';
 import os from 'node:os';
 import { dirname } from 'node:path';
 import tls from 'node:tls';
+import { createDiagnosticsStore } from '@voice/db/diagnostics';
 import { RoomServiceClient } from 'livekit-server-sdk';
 import CONFIG from '#config';
 import { logger } from '#logger';
-import { createDiagnosticsStore } from './store.js';
 
 export const diagnostics = createDiagnosticsStore(CONFIG.DIAGNOSTICS_DB_PATH);
 export const ingestKey = createHmac(

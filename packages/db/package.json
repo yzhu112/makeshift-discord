@@ -1,0 +1,26 @@
+{
+  "name": "@voice/db",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "db:generate": "drizzle-kit generate --config=drizzle.main.config.js",
+    "db:migrate": "drizzle-kit migrate --config=drizzle.main.config.js",
+    "db:generate:diagnostics": "drizzle-kit generate --config=drizzle.diagnostics.config.js",
+    "db:migrate:diagnostics": "drizzle-kit migrate --config=drizzle.diagnostics.config.js"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.4",
+    "drizzle-zod": "^0.8.3",
+    "zod": "^4.4.3",
+    "better-sqlite3": "^12.10.0"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.31.11"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./migrate": "./migrate.js",
+    "./diagnostics": "./services/diagnostics/store.js"
+  }
+}

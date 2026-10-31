@@ -47,7 +47,7 @@ function selectNode() {
 			[
 				'--input-type=module',
 				'-e',
-				"import Database from 'better-sqlite3'; const db = new Database(':memory:'); db.close();",
+				"import { createMainDbService } from '@voice/db'; const db = createMainDbService(':memory:'); db.close();",
 			],
 			{ cwd: backend, stdio: 'ignore' },
 		);
