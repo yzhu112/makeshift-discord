@@ -1,18 +1,22 @@
-import { useRef, useState } from 'react';
-import { LogOut } from 'lucide-react';
+import { AudioSettings, type CallAudioSettings } from '@/audio/AudioSettings';
 import { useAuth } from '@/auth/AuthProvider';
 import { useT } from '@/i18n/I18nProvider';
+import { Activity, LogOut, Settings } from 'lucide-react';
+import { useRef, useState } from 'react';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 
-export function ProfileMenu({ username }: { username: string }) {
+export function ProfileMenu({ username, audio }: { username: string; audio?: CallAudioSettings }) {
   const { logout } = useAuth();
   const t = useT();
   const [pending, setPending] = useState(false);
   const [failed, setFailed] = useState(false);
   const submitting = useRef(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const openingSettings = useRef(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   async function signOut() {
     if (submitting.current) return;
@@ -30,15 +34,35 @@ export function ProfileMenu({ username }: { username: string }) {
   }
 
   return (
+    <>
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button type="button" className="app-account" aria-label={t('profile.open', { name: username })} title={username}>
+        <button ref={triggerRef} type="button" className="app-account" aria-label={t('profile.open', { name: username })} title={username}>
           {username.slice(0, 1).toUpperCase()}
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-60 max-w-[calc(100vw-24px)] rounded-md animate-none!">
+      <DropdownMenuContent className="w-60 max-w-[calc(100vw-24px)] rounded-md animate-none!" onCloseAutoFocus={event => {
+        // Let the dialog take focus when opening it from a menu item.
+        if (openingSettings.current) {
+          event.preventDefault();
+          openingSettings.current = false;
+        }
+      }}>
         <DropdownMenuLabel className="px-3 pt-2 pb-1 tracking-normal normal-case">{t('profile.signedIn')}</DropdownMenuLabel>
         <p className="px-3 pb-2 text-sm font-medium break-words">{username}</p>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={() => {
+          openingSettings.current = true;
+          setSettingsOpen(true);
+        }} className="min-h-9 px-3 text-xs">
+          <Settings size={14} aria-hidden="true" />{t('audio.settings')}
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild className="min-h-9 px-3 text-xs">
+          <a href="/diagnostics">
+            <Activity size={14} aria-hidden="true" />
+            <span>{t('profile.diagnostics')}</span>
+          </a>
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem disabled={pending} onSelect={event => { event.preventDefault(); void signOut(); }} className="min-h-9 px-3 text-xs">
           <LogOut size={14} />{t(pending ? 'profile.loggingOut' : 'lobby.logout')}
@@ -46,5 +70,7 @@ export function ProfileMenu({ username }: { username: string }) {
         {failed && <p role="alert" className="px-3 py-2 text-xs leading-relaxed text-destructive">{t('profile.logoutError')}</p>}
       </DropdownMenuContent>
     </DropdownMenu>
+    <AudioSettings call={audio} open={settingsOpen} onOpenChange={setSettingsOpen} showTrigger={false} returnFocusRef={triggerRef} />
+    </>
   );
 }

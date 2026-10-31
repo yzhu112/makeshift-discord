@@ -5,11 +5,13 @@ import { ThemeToggle } from '@/theme/ThemeToggle';
 
 type Props = {
 	floating?: boolean;
+	showAudio?: boolean;
+	showLanguage?: boolean;
 	audio?: CallAudioSettings;
 	className?: string;
 };
 
-export function SettingsBar({ floating = false, className, audio }: Props) {
+export function SettingsBar({ floating = false, className, audio, showAudio = true, showLanguage = true }: Props) {
 	return (
 			<div
 				className={cn(
@@ -19,9 +21,9 @@ export function SettingsBar({ floating = false, className, audio }: Props) {
 					className,
 				)}
 			>
-				<LanguageSwitcher />
+				{showLanguage && <LanguageSwitcher />}
 				<ThemeToggle />
-				<AudioSettings call={audio} />
+				{showAudio && <AudioSettings call={audio} />}
 			</div>
 	);
 }

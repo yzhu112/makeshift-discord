@@ -16,43 +16,11 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  height: 57px;
-  border-bottom: 1px solid var(--diag-line);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 26px;
-  background: var(--card);
-}
-.diag-brand,
-.diag-top-actions {
-  display: flex;
-  align-items: center;
-  gap: 13px;
-}
-.diag-brand {
-  color: var(--muted-foreground);
-  text-decoration: none;
-}
-.diag-brand strong {
-  color: var(--foreground);
-  font-weight: 500;
-}
-.diag-slash {
-  margin: 0 14px;
-  color: var(--border);
-}
-.diag-top-actions {
-  gap: 18px;
-}
-.diag-user {
-  font-size: 12px;
-  color: var(--muted-foreground);
 }
 .diag-layout {
   display: grid;
   grid-template-columns: 238px minmax(0, 1fr);
-  min-height: calc(100vh - 57px);
+  min-height: calc(100vh - 64px);
 }
 .diag-sidebar {
   border-right: 1px solid var(--diag-line);
@@ -60,9 +28,9 @@
   display: flex;
   flex-direction: column;
   background: var(--card);
-  height: calc(100vh - 57px);
+  height: calc(100vh - 64px);
   position: sticky;
-  top: 57px;
+  top: 64px;
 }
 .diag-sidebar-title {
   font-size: 10px;
@@ -446,7 +414,7 @@
 }
 .diagnostics.diag-participant-sheet {
   position: fixed;
-  inset: 57px 0 0 auto;
+  inset: 64px 0 0 auto;
   z-index: 30;
   width: min(720px, 60vw);
   min-height: 0;
@@ -873,10 +841,6 @@
 @media (max-width: 700px) {
   .diag-topbar {
     position: static;
-    padding: 0 16px;
-  }
-  .diag-user {
-    display: none;
   }
   .diag-layout {
     display: block;

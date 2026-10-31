@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
-import { Headphones, Mic, Settings, Square } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useT } from '@/i18n/I18nProvider';
+import { Headphones, Mic, Settings, Square } from 'lucide-react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
+import './audio-settings.css';
 import { MicrophoneTest } from './MicrophoneTest';
 import { savedNoiseMode, saveNoiseMode, type NoiseMode } from './preferences';
-import './audio-settings.css';
 
 export type CallAudioSettings = {
   mode: NoiseMode;
@@ -13,17 +13,30 @@ export type CallAudioSettings = {
   beginTest: () => Promise<() => Promise<void>>;
 };
 
-export function AudioSettings({ call }: { call?: CallAudioSettings }) {
+export function AudioSettings({ call, open: controlledOpen, onOpenChange, showTrigger = true, returnFocusRef }: {
+  call?: CallAudioSettings;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  showTrigger?: boolean;
+  returnFocusRef?: RefObject<HTMLButtonElement | null>;
+}) {
   const t = useT();
-  const [open, setOpen] = useState(false);
+  const [localOpen, setLocalOpen] = useState(false);
+  const open = controlledOpen ?? localOpen;
+  const setOpen = onOpenChange ?? setLocalOpen;
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+      {showTrigger && <DialogTrigger asChild>
         <button type="button" className="audio-settings-trigger" title={t('audio.title')} aria-label={t('audio.title')}>
           <Settings size={22} />
         </button>
-      </DialogTrigger>
-      <DialogContent animated={false} className="audio-settings">
+      </DialogTrigger>}
+      <DialogContent animated={false} className="audio-settings" onCloseAutoFocus={event => {
+        if (returnFocusRef?.current) {
+          event.preventDefault();
+          returnFocusRef.current.focus();
+        }
+      }}>
         {open && <AudioSettingsBody call={call} />}
       </DialogContent>
     </Dialog>

@@ -1,8 +1,8 @@
-import { ProfileMenu } from '@/components/ProfileMenu';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import type { User } from '@/api';
+import { api } from '@/api';
+import { AppHeader } from '@/components/AppHeader';
 import {
   Activity,
-  ArrowUpRight,
   Check,
   ChevronDown,
   ChevronRight,
@@ -11,16 +11,15 @@ import {
   Globe,
   Headphones,
   LoaderCircle,
-  Radio,
   Search,
   Server,
   Users,
   X,
 } from 'lucide-react';
 import { Dialog } from 'radix-ui';
-import { api } from '@/api';
-import type { User } from '@/api';
-import { ThemeToggle } from '@/theme/ThemeToggle';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import './diagnostics.css';
+import { applySync, type SyncResponse } from './sync';
 import type {
   AudioStats,
   Call,
@@ -31,8 +30,6 @@ import type {
   ServerSample,
   Session,
 } from './types';
-import './diagnostics.css';
-import { applySync, type SyncResponse } from './sync';
 
 function usePoll<T>(url: string | null) {
   const [result, setResult] = useState<{ url: string; data: T; at: number }>();
@@ -332,22 +329,9 @@ export function DiagnosticsPage({ user }: { user: User }) {
   }
   return (
     <div className="diagnostics">
-      <header className="diag-topbar">
-        <a href="/" className="diag-brand">
-          <Radio size={17} />
-          <span>
-            Voice<span className="diag-slash">/</span>
-            <strong>Diagnostics</strong>
-          </span>
-        </a>
-        <div className="diag-top-actions">
-          <ProfileMenu username={user.username} />
-          <ThemeToggle />
-          <a href="/" className="diag-icon-link" title="Back to lobby">
-            <ArrowUpRight size={16} />
-          </a>
-        </div>
-      </header>
+      <div className="diag-topbar">
+        <AppHeader section="Diagnostics" username={user.username} brandHref="/" showLanguage={false} />
+      </div>
       <div className="diag-layout">
         <aside className="diag-sidebar">
           <div className="diag-sidebar-title">WORKSPACE</div>
@@ -508,7 +492,7 @@ export function DiagnosticsPage({ user }: { user: User }) {
             />
           ) : overview.data ? (
             <Empty title="No calls yet">
-              Start a call in the original tab. Connected calls and failed join
+              Join a channel to start a call. Connected calls and failed join
               attempts will appear here automatically.
             </Empty>
           ) : (
