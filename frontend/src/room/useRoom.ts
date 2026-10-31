@@ -1,18 +1,18 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ConnectionState,
-  type LocalAudioTrack,
-  type Participant,
-  type RemoteAudioTrack,
   Room,
   RoomEvent,
   Track,
+  type LocalAudioTrack,
+  type Participant,
+  type RemoteAudioTrack,
 } from 'livekit-client';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { RnnoiseProcessor } from './rnnoise';
 import { PresenceSounds } from '@/audio/PresenceSounds';
 import { muteForMicrophoneTest } from '@/audio/callTestMute';
-import { startMicrophone, microphoneIssue, type MicrophoneIssue } from '@/audio/startMicrophone';
+import { microphoneIssue, startMicrophone, type MicrophoneIssue } from '@/audio/startMicrophone';
+import { RnnoiseProcessor } from './rnnoise';
 
 import { captureOptions, savedNoiseMode, saveNoiseMode, type NoiseMode } from '@/audio/preferences';
 
@@ -69,6 +69,7 @@ const decoder = new TextDecoder();
 
 export function useRoom() {
   const roomRef = useRef<Room | null>(null);
+  const pendingDisconnect = useRef<Promise<void>>(Promise.resolve());
   const presenceSoundsRef = useRef<PresenceSounds | null>(null);
   const [microphoneBusy, setMicrophoneBusy] = useState(false);
   const microphoneBusyRef = useRef(false);
@@ -300,12 +301,13 @@ export function useRoom() {
     const room = roomRef.current;
     roomRef.current = null;
     room?.removeAllListeners();
-    void room?.disconnect();
+    if (room) pendingDisconnect.current = room.disconnect();
     presenceSoundsRef.current?.close();
     presenceSoundsRef.current = null;
     microphoneBusyRef.current = false;
     setMicrophoneBusy(false);
     setState(DISCONNECTED);
+    return pendingDisconnect.current;
   }, []);
 
   const beginMicrophoneTest = useCallback(async () => {
@@ -383,17 +385,7 @@ export function useRoom() {
     setState((s) => ({ ...s, messages: [...s.messages, msg] }));
   }, []);
 
-  useEffect(
-    () => () => {
-      const room = roomRef.current;
-      roomRef.current = null;
-      room?.removeAllListeners();
-      void room?.disconnect();
-      presenceSoundsRef.current?.close();
-      presenceSoundsRef.current = null;
-    },
-    [],
-  );
+  useEffect(() => () => { void disconnect().catch(() => {}); }, [disconnect]);
 
   return { microphoneBusy, startAudio, beginMicrophoneTest, isTestingMicrophone, state, connect, disconnect, toggleMute, sendMessage, noiseMode, noiseBusy, noiseNotice, changeNoiseMode };
 }

@@ -1,0 +1,42 @@
+.app-with-call-dock { padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
+@media (min-width: 701px) {
+  .app-with-call-dock .diag-sidebar { padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
+}
+.call-dock {
+  position: fixed;
+  z-index: 40;
+  bottom: max(20px, env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(480px, calc(100% - 32px));
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: 0 4px 20px rgb(0 0 0 / .12);
+  font-family: var(--font-sans);
+  font-size: 12px;
+}
+.call-dock button { outline-offset: 4px; }
+.call-dock-return { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; text-align: left; border-radius: 4px; }
+.call-dock-return:hover .call-dock-expand { color: var(--foreground); }
+.call-dock-return:focus-visible { outline: 2px solid var(--ring); }
+.call-dock-icon { display: grid; place-items: center; width: 34px; height: 34px; flex-shrink: 0; border: 1px solid var(--border); border-radius: 5px; color: var(--muted-foreground); }
+.call-dock-icon.connected { color: #22a86f; }
+.call-dock-summary { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 5px; }
+.call-dock-summary strong { font-size: 12px; font-weight: 550; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.call-dock-status { font-size: 10px; color: var(--muted-foreground); line-height: 1.5; overflow-wrap: anywhere; }
+.call-dock-expand { flex-shrink: 0; color: var(--muted-foreground); }
+.call-dock-unread { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; color: var(--muted-foreground); }
+.call-dock-actions { display: flex; align-items: center; gap: 6px; padding-left: 12px; border-left: 1px solid var(--border); }
+.call-dock-actions [data-slot="button"] { width: 34px; height: 34px; border-radius: 5px; box-shadow: none; }
+@media (max-width: 480px) {
+  .call-dock { width: calc(100% - 24px); bottom: max(12px, env(safe-area-inset-bottom)); gap: 8px; padding: 10px; }
+  .call-dock-return { gap: 8px; }
+  .call-dock-icon { display: none; }
+  .call-dock-actions { padding-left: 8px; }
+}

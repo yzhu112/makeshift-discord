@@ -1,6 +1,12 @@
-import type { CSSProperties, FormEvent } from 'react';
-import { useEffect, useRef, useState } from 'react';
-import type { Participant, RemoteAudioTrack } from 'livekit-client';
+import type { User } from '@/api';
+import { AppHeader } from '@/components/AppHeader';
+import { CopyCode } from '@/components/CopyCode';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { useT } from '@/i18n/I18nProvider';
+import { cn } from '@/lib/utils';
+import type { Participant } from 'livekit-client';
 import { ConnectionState } from 'livekit-client';
 import {
   MessageSquare,
@@ -11,21 +17,12 @@ import {
   Users,
   Volume2,
 } from 'lucide-react';
-import { ApiError, api } from '@/api';
-import type { User } from '@/api';
-import { CopyCode } from '@/components/CopyCode';
-import { AppHeader } from '@/components/AppHeader';
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { useT } from '@/i18n/I18nProvider';
-import { cn } from '@/lib/utils';
-import type { ChatMessage } from './useRoom';
-import { useRoom } from './useRoom';
+import type { CSSProperties, FormEvent } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { participantLayout, visibleParticipants } from './participantLayout';
 import { ParticipantVolume } from './ParticipantVolume';
-import { participantVolumeKey, savedParticipantVolume } from '@/audio/participantVolume';
-import { CallTelemetry, errorDetails } from '@/diagnostics/telemetry';
+import type { ChatMessage } from './useRoom';
+import { useActiveCall } from './ActiveCallProvider';
 
 type Props = {
   user: User;
@@ -34,16 +31,10 @@ type Props = {
 };
 
 export function RoomView({ user, roomName, onLeave }: Props) {
-  const { microphoneBusy, startAudio, beginMicrophoneTest, isTestingMicrophone, state, connect, disconnect, toggleMute, sendMessage, noiseMode, noiseBusy, noiseNotice, changeNoiseMode } = useRoom();
+  const call = useActiveCall()!;
+  const { microphoneBusy, startAudio, isTestingMicrophone, state, toggleMute, sendMessage, noiseBusy, noiseNotice,
+    error, setError, getVolume, changeVolume, seenCount, setSeenCount } = call;
   const t = useT();
-  const [volumes, setVolumes] = useState<Map<string, number>>(() => new Map());
-  const getVolume = (identity: string) => volumes.get(participantVolumeKey(user.id, identity)) ?? savedParticipantVolume(user.id, identity);
-  function changeVolume(identity: string, volume: number) {
-    const key = participantVolumeKey(user.id, identity);
-    setVolumes(previous => new Map(previous).set(key, volume));
-    try { localStorage.setItem(key, String(volume)); } catch { /* Optional preference. */ }
-  }
-  const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<'people' | 'chat'>('people');
   const [chatOpen, setChatOpen] = useState(false);
   const [peopleOpen, setPeopleOpen] = useState(false);
@@ -60,51 +51,14 @@ export function RoomView({ user, roomName, onLeave }: Props) {
     observer.observe(grid);
     return () => observer.disconnect();
   }, [tileCount > 0]);
-  const [seenCount, setSeenCount] = useState(0);
   const room = user.rooms.find((r) => r.name === roomName);
   const unread = state.messages.length - seenCount;
-
-  useEffect(() => {
-    let cancelled = false;
-    const abort = new AbortController();
-    let telemetry: CallTelemetry | undefined;
-    let joined = false;
-    // Defer the start so StrictMode's setup/cleanup probe doesn't create a fake attempt.
-    const task = setTimeout(async () => {
-      try { telemetry = new CallTelemetry(user.id, roomName); } catch { /* Telemetry is optional. */ }
-      try {
-        const { token, url } = await api<{ token: string; url: string }>('/api/livekit-token', {
-          method: 'POST', signal: abort.signal,
-          body: JSON.stringify({ roomName, diagnosticSessionId: telemetry?.id }),
-        });
-        telemetry?.event('token_received', 'Join token received');
-        if (!cancelled) await connect(url, token, room => {
-          try { telemetry?.attach(room); } catch { /* Diagnostics must not block joining. */ }
-          room.once('connected', () => { joined = true; });
-        });
-      } catch (err) {
-        if (!cancelled) {
-          telemetry?.event(joined ? 'audio_setup_failed' : 'join_failed', joined ? 'Joined, but audio setup failed' : 'Unable to join room', errorDetails(err), 'error');
-          setError(err instanceof ApiError ? err.message : t('room.error.join'));
-        }
-      }
-    }, 0);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(task);
-      abort.abort();
-      telemetry?.finish();
-      disconnect();
-    };
-  }, [roomName, user.id, connect, disconnect]);
 
   useEffect(() => {
     if (tab === 'chat' || chatOpen) setSeenCount(state.messages.length);
   }, [tab, chatOpen, state.messages.length]);
 
   function handleLeave() {
-    disconnect();
     onLeave();
   }
 
@@ -116,12 +70,7 @@ export function RoomView({ user, roomName, onLeave }: Props) {
 
   return (
     <div className="workspace call-page">
-      {state.audioTracks.map(track => {
-        const owner = state.participants.find(participant =>
-          [...participant.audioTrackPublications.values()].some(publication => publication.track === track));
-        return <RemoteAudio key={track.sid} track={track} volume={owner ? getVolume(owner.identity) : 100} />;
-      })}
-      <AppHeader section={roomName} username={user.username} audio={{ mode: noiseMode, busy: microphoneBusy || noiseBusy || !isConnected, onChange: changeNoiseMode, beginTest: beginMicrophoneTest }} />
+      <AppHeader section={roomName} username={user.username} />
       <div className="call-layout">
         <main className="call-main">
           <div className="call-heading">
@@ -314,7 +263,7 @@ function ChatSection({
   onSend: (text: string) => Promise<void>;
 }) {
   const t = useT();
-  const [text, setText] = useState('');
+  const { chatDraft: text, setChatDraft: setText } = useActiveCall()!;
   const [failed, setFailed] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -355,21 +304,4 @@ function ChatSection({
       </form>
     </div>
   );
-}
-
-function RemoteAudio({ track, volume }: { track: RemoteAudioTrack; volume: number }) {
-  const audioRef = useRef<HTMLAudioElement>(null);
-  useEffect(() => {
-    const el = audioRef.current;
-    if (!el) return;
-    track.attach(el);
-    return () => {
-      track.detach(el);
-    };
-  }, [track]);
-  useEffect(() => {
-    // Apply after attachment, including zero, and whenever a replacement track arrives.
-    track.setVolume(volume / 100);
-  }, [track, volume]);
-  return <audio ref={audioRef} autoPlay className="hidden" />;
 }

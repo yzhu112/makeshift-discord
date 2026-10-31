@@ -1,3 +1,4 @@
+import { isPlainNavigation, useNavigation } from '@/navigation';
 import { AudioSettings, type CallAudioSettings } from '@/audio/AudioSettings';
 import { useAuth } from '@/auth/AuthProvider';
 import { useT } from '@/i18n/I18nProvider';
@@ -11,6 +12,7 @@ import {
 export function ProfileMenu({ username, audio }: { username: string; audio?: CallAudioSettings }) {
   const { logout } = useAuth();
   const t = useT();
+  const navigation = useNavigation();
   const [pending, setPending] = useState(false);
   const [failed, setFailed] = useState(false);
   const submitting = useRef(false);
@@ -58,7 +60,12 @@ export function ProfileMenu({ username, audio }: { username: string; audio?: Cal
           <Settings size={14} aria-hidden="true" />{t('audio.settings')}
         </DropdownMenuItem>
         <DropdownMenuItem asChild className="min-h-9 px-3 text-xs">
-          <a href="/diagnostics">
+          <a href="/diagnostics" onClick={event => {
+            if (navigation && isPlainNavigation(event)) {
+              event.preventDefault();
+              navigation.navigate('diagnostics');
+            }
+          }}>
             <Activity size={14} aria-hidden="true" />
             <span>{t('profile.diagnostics')}</span>
           </a>
