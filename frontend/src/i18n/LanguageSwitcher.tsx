@@ -1,13 +1,13 @@
-import { Languages } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuLabel,
-	DropdownMenuRadioGroup,
-	DropdownMenuRadioItem,
-	DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Languages } from 'lucide-react';
 import { useI18n } from './I18nProvider';
 import { LOCALES, LOCALE_LABELS, type Locale } from './messages';
 

@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { Check, Copy } from 'lucide-react';
 import { useT } from '@/i18n/I18nProvider';
 import { cn } from '@/lib/utils';
+import { Check, Copy } from 'lucide-react';
+import { useState } from 'react';
 
 type Props = {
 	code: string;

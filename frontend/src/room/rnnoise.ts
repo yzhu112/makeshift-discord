@@ -1,8 +1,8 @@
-import type { AudioProcessorOptions, Track, TrackProcessor } from 'livekit-client';
 import type { RnnoiseWorkletNode } from '@sapphi-red/web-noise-suppressor';
-import workletUrl from '@sapphi-red/web-noise-suppressor/rnnoiseWorklet.js?url';
 import wasmUrl from '@sapphi-red/web-noise-suppressor/rnnoise.wasm?url';
 import simdUrl from '@sapphi-red/web-noise-suppressor/rnnoise_simd.wasm?url';
+import workletUrl from '@sapphi-red/web-noise-suppressor/rnnoiseWorklet.js?url';
+import type { AudioProcessorOptions, Track, TrackProcessor } from 'livekit-client';
 
 /** A dedicated 48 kHz context also resamples microphones running at 44.1 kHz. */
 export class RnnoiseProcessor implements TrackProcessor<Track.Kind.Audio, AudioProcessorOptions> {

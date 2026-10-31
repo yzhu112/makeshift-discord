@@ -1,3 +1,4 @@
+import { api, ApiError } from '@/api';
 import {
   DisconnectReason,
   LogLevel,
@@ -6,7 +7,6 @@ import {
   setLogExtension,
   version,
 } from 'livekit-client';
-import { api, ApiError } from '@/api';
 import { StatsCollector } from './stats';
 import type { Details, Metrics } from './types';
 

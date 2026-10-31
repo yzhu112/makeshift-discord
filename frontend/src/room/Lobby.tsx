@@ -1,21 +1,21 @@
-import type { FormEvent } from 'react';
-import { useState } from 'react';
-import { ArrowUpRight, Globe, Lock, Plus, UserPlus, Volume2 } from 'lucide-react';
-import { ApiError, api } from '@/api';
 import type { User } from '@/api';
+import { ApiError, api } from '@/api';
 import { useAuth } from '@/auth/AuthProvider';
-import { CopyCode } from '@/components/CopyCode';
 import { AppHeader } from '@/components/AppHeader';
+import { CopyCode } from '@/components/CopyCode';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { useT } from '@/i18n/I18nProvider';
 import { cn } from '@/lib/utils';
+import { ArrowUpRight, Globe, Lock, Plus, UserPlus, Volume2 } from 'lucide-react';
+import type { FormEvent } from 'react';
+import { useState } from 'react';
 
 type Props = {
   user: User;

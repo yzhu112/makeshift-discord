@@ -37,7 +37,7 @@ before(async () => {
   };
   globalThis.MediaStream = class { constructor(tracks) { this.tracks = tracks; } };
   globalThis.fetch = async () => ({ arrayBuffer: async () => new ArrayBuffer(8) });
-  server = await createServer({ configFile: false, root: new URL('..', import.meta.url).pathname, optimizeDeps: { noDiscovery: true, include: [] }, server: { middlewareMode: true, ws: false, hmr: false, watch: null } });
+  server = await createServer({ configFile: false, resolve: { alias: { '@': new URL('../src', import.meta.url).pathname } }, root: new URL('..', import.meta.url).pathname, optimizeDeps: { noDiscovery: true, include: [] }, server: { middlewareMode: true, ws: false, hmr: false, watch: null } });
   ({ RnnoiseProcessor } = await server.ssrLoadModule('/src/room/rnnoise.ts'));
   ({ MicrophoneTest } = await server.ssrLoadModule('/src/audio/MicrophoneTest.ts'));
 });

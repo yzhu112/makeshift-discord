@@ -1,4 +1,4 @@
-import { RnnoiseProcessor } from '../room/rnnoise';
+import { RnnoiseProcessor } from '@/room/rnnoise';
 import { captureOptions, type NoiseMode } from './preferences';
 
 type Callbacks = {

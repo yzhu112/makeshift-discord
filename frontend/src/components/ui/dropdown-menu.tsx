@@ -150,13 +150,7 @@ function DropdownMenuSeparator({
 }
 
 export {
-	DropdownMenu,
-	DropdownMenuTrigger,
-	DropdownMenuContent,
-	DropdownMenuLabel,
-	DropdownMenuItem,
-	DropdownMenuCheckboxItem,
-	DropdownMenuRadioGroup,
-	DropdownMenuRadioItem,
-	DropdownMenuSeparator,
+  DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator, DropdownMenuTrigger
 };

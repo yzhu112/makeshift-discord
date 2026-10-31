@@ -1,6 +1,6 @@
-import { useId } from 'react';
-import { Volume2, VolumeX } from 'lucide-react';
 import { useI18n } from '@/i18n/I18nProvider';
+import { Volume2, VolumeX } from 'lucide-react';
+import { useId } from 'react';
 
 export function ParticipantVolume({ identity, volume, onChange }: {
   identity: string;
