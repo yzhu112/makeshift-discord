@@ -1,5 +1,19 @@
 export type Room = { name: string; code: string | null };
-export type User = { id: number; username: string; rooms: Room[] };
+export type ProfileUpdate = {
+	display_name?: string | null;
+	avatar?: string | null;
+	language?: 'en' | 'zh' | 'ja' | null;
+	theme?: 'light' | 'dark' | 'system' | null;
+};
+export type User = {
+	id: number;
+	username: string;
+	rooms: Room[];
+	display_name: string | null;
+	language: 'en' | 'zh' | 'ja' | null;
+	theme: 'light' | 'dark' | 'system' | null;
+	updated_at: number | null;
+};
 
 export class ApiError extends Error {
 	status: number;

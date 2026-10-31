@@ -1,5 +1,7 @@
+import { SettingsDialog } from '@/settings/SettingsDialog';
+import { UserAvatar } from './UserAvatar';
 import { isPlainNavigation, useNavigation } from '@/navigation';
-import { AudioSettings, type CallAudioSettings } from '@/audio/AudioSettings';
+import { type CallAudioSettings } from '@/audio/AudioSettings';
 import { useAuth } from '@/auth/AuthProvider';
 import { useT } from '@/i18n/I18nProvider';
 import { Activity, LogOut, Settings } from 'lucide-react';
@@ -10,7 +12,8 @@ import {
 } from './ui/dropdown-menu';
 
 export function ProfileMenu({ username, audio }: { username: string; audio?: CallAudioSettings }) {
-  const { logout } = useAuth();
+  const { logout, state, avatar } = useAuth();
+  const name = state.status === 'authed' ? state.user.display_name || username : username;
   const t = useT();
   const navigation = useNavigation();
   const [pending, setPending] = useState(false);
@@ -39,8 +42,8 @@ export function ProfileMenu({ username, audio }: { username: string; audio?: Cal
     <>
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button ref={triggerRef} type="button" className="app-account" aria-label={t('profile.open', { name: username })} title={username}>
-          {username.slice(0, 1).toUpperCase()}
+        <button ref={triggerRef} type="button" className="app-account" aria-label={t('profile.open', { name })} title={name}>
+          <UserAvatar name={name} avatar={avatar} />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-60 max-w-[calc(100vw-24px)] rounded-md animate-none!" onCloseAutoFocus={event => {
@@ -57,7 +60,7 @@ export function ProfileMenu({ username, audio }: { username: string; audio?: Cal
           openingSettings.current = true;
           setSettingsOpen(true);
         }} className="min-h-9 px-3 text-xs">
-          <Settings size={14} aria-hidden="true" />{t('audio.settings')}
+          <Settings size={14} aria-hidden="true" />{t('account.settings')}
         </DropdownMenuItem>
         <DropdownMenuItem asChild className="min-h-9 px-3 text-xs">
           <a href="/diagnostics" onClick={event => {
@@ -77,7 +80,7 @@ export function ProfileMenu({ username, audio }: { username: string; audio?: Cal
         {failed && <p role="alert" className="px-3 py-2 text-xs leading-relaxed text-destructive">{t('profile.logoutError')}</p>}
       </DropdownMenuContent>
     </DropdownMenu>
-    <AudioSettings call={audio} open={settingsOpen} onOpenChange={setSettingsOpen} showTrigger={false} returnFocusRef={triggerRef} />
+    <SettingsDialog audio={audio} open={settingsOpen} onOpenChange={setSettingsOpen} returnFocusRef={triggerRef} />
     </>
   );
 }

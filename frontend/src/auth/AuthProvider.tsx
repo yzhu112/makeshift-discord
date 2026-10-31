@@ -1,5 +1,7 @@
-import type { User } from '@/api';
+import type { ProfileUpdate, User } from '@/api';
 import { ApiError, api } from '@/api';
+import { useI18n } from '@/i18n/I18nProvider';
+import { useTheme } from '@/theme/ThemeProvider';
 import type { ReactNode } from 'react';
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 
@@ -21,12 +23,48 @@ type AuthContextValue = {
 	login: (input: LoginInput) => Promise<void>;
 	logout: () => Promise<void>;
 	refresh: () => Promise<void>;
+	updateProfile: (changes: ProfileUpdate) => Promise<void>;
+	avatar: string | null | undefined;
+	avatarError: boolean;
+	retryAvatar: () => void;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
 	const [state, setState] = useState<AuthState>({ status: 'loading' });
+	const stateRef = useRef(state);
+	stateRef.current = state;
+	const [avatarCache, setAvatarCache] = useState<{ id: number; version: number | null; data: string | null }>();
+	const [avatarError, setAvatarError] = useState(false);
+	const [avatarAttempt, setAvatarAttempt] = useState(0);
+	const updateQueue = useRef(Promise.resolve());
+	const { setTheme } = useTheme();
+	const { setLocale } = useI18n();
+	const user = state.status === 'authed' ? state.user : undefined;
+	const userId = user?.id;
+	const userVersion = user?.updated_at;
+	const avatarCurrent = avatarCache?.id === userId && avatarCache?.version === userVersion;
+
+	useEffect(() => {
+		if (user?.theme) setTheme(user.theme);
+		if (user?.language) setLocale(user.language);
+		// NULL leaves the existing browser preference in place.
+	}, [userId, user?.theme, user?.language]);
+
+	useEffect(() => {
+		if (userId === undefined || avatarCurrent) return;
+		const controller = new AbortController();
+		setAvatarError(false);
+		void api<User & { avatar: string | null }>('/api/me?include=avatar', { signal: controller.signal })
+			.then(result => {
+				if (!controller.signal.aborted && result.id === userId && result.updated_at === userVersion) {
+					setAvatarCache({ id: result.id, version: result.updated_at, data: result.avatar ?? null });
+				}
+			})
+			.catch(() => { if (!controller.signal.aborted) setAvatarError(true); });
+		return () => controller.abort();
+	}, [userId, userVersion, avatarCurrent, avatarAttempt]);
 
 	const channel = useRef<BroadcastChannel | null>(null);
 	const revision = useRef(0);
@@ -36,6 +74,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		// In-flight /me responses must not restore a logged-out session.
 		revision.current++;
 		setState({ status: 'unauthed' });
+		setAvatarCache(undefined);
+		setAvatarError(false);
 	}, []);
 
 	const loadUser = useCallback(async () => {
@@ -93,6 +133,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		}
 	}
 
+	const updateProfile = useCallback((changes: ProfileUpdate) => {
+		const expected = stateRef.current;
+		if (expected.status !== 'authed') return Promise.reject(new Error('Unauthenticated'));
+		mutations.current++;
+		const operation = updateQueue.current.then(async () => {
+			const current = stateRef.current;
+			if (current.status !== 'authed' || current.user.id !== expected.user.id) throw new Error('Session changed');
+			const request = ++revision.current;
+			try {
+				const updated = await api<User>('/api/me', { method: 'PATCH', body: JSON.stringify(changes) });
+				if (revision.current !== request) throw new Error('Session changed');
+				setState({ status: 'authed', user: updated });
+				setAvatarCache(previous => {
+					if (Object.hasOwn(changes, 'avatar')) return { id: updated.id, version: updated.updated_at, data: changes.avatar ?? null };
+					return previous?.id === updated.id ? { ...previous, version: updated.updated_at } : previous;
+				});
+				if (Object.hasOwn(changes, 'avatar')) setAvatarError(false);
+			} catch (error) {
+				if (error instanceof ApiError && error.status === 401) clearAuth();
+				throw error;
+			}
+		}).finally(() => { mutations.current--; });
+		updateQueue.current = operation.catch(() => {});
+		return operation;
+	}, [clearAuth]);
+
 	const value: AuthContextValue = {
 		state,
 		signup: input => authenticate('/api/signup', input),
@@ -110,6 +176,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			}
 		},
 		refresh: loadUser,
+		updateProfile,
+		avatar: avatarCache && avatarCache.id === userId ? avatarCache.data : undefined,
+		avatarError,
+		retryAvatar: () => setAvatarAttempt(attempt => attempt + 1),
 	};
 
 	return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

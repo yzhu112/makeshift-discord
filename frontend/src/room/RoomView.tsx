@@ -1,3 +1,5 @@
+import { useAuth } from '@/auth/AuthProvider';
+import { UserAvatar } from '@/components/UserAvatar';
 import type { User } from '@/api';
 import { AppHeader } from '@/components/AppHeader';
 import { CopyCode } from '@/components/CopyCode';
@@ -31,6 +33,7 @@ type Props = {
 };
 
 export function RoomView({ user, roomName, onLeave }: Props) {
+  const { avatar } = useAuth();
   const call = useActiveCall()!;
   const { microphoneBusy, startAudio, isTestingMicrophone, state, toggleMute, sendMessage, noiseBusy, noiseNotice,
     error, setError, getVolume, changeVolume, seenCount, setSeenCount } = call;
@@ -139,7 +142,7 @@ export function RoomView({ user, roomName, onLeave }: Props) {
         </aside>
       </div>
       <footer className="call-controls">
-        <div className="call-self"><span className="self-avatar">{user.username.slice(0, 1).toUpperCase()}</span><div><strong>{user.username}</strong><small>{t(isTestingMicrophone ? 'audio.micTest' : state.isMuted ? 'ui.micMuted' : 'ui.micOn')}</small></div></div>
+        <div className="call-self"><UserAvatar className="self-avatar" name={user.display_name || user.username} avatar={avatar} /><div><strong>{user.display_name || user.username}</strong><small>{t(isTestingMicrophone ? 'audio.micTest' : state.isMuted ? 'ui.micMuted' : 'ui.micOn')}</small></div></div>
         <div className="call-control-buttons">
           <Button disabled={!isConnected || noiseBusy || microphoneBusy || isTestingMicrophone} variant="outline" onClick={() => void toggleMute()} className="app-button call-mute" aria-pressed={state.isMuted}>
             {state.isMuted ? <MicOff size={16} /> : <Mic size={16} />}<span>{t(microphoneBusy ? 'room.microphone.starting' : state.microphoneIssue && state.isMuted ? 'room.microphone.enable' : state.isMuted ? 'room.action.unmute' : 'room.action.mute')}</span>
@@ -195,13 +198,14 @@ function ParticipantTile({
   volume: number;
   onVolumeChange: (volume: number) => void;
 }) {
-  const initial = (participant.identity[0] ?? '?').toUpperCase();
+  const { state: auth, avatar } = useAuth();
+  const name = isLocal && auth.status === 'authed' ? auth.user.display_name || participant.identity : participant.identity;
   const t = useT();
   return (
     <div style={style} className={cn('participant-tile', isSpeaking && !isMuted && 'speaking')}>
       <div className="participant-tile-top"><span>{isLocal ? t('ui.you') : t('ui.participant')}</span><span aria-label={t(isMuted ? 'ui.micMuted' : 'ui.micOn')}>{isMuted ? <MicOff size={14} /> : <Mic size={14} />}</span></div>
-      <div className="participant-avatar">{initial}</div>
-      <div className="participant-tile-bottom"><strong title={participant.identity}>{participant.identity}{isLocal && <small> {youLabel}</small>}</strong><span className="participant-status">{t(isMuted ? 'ui.micMuted' : isSpeaking ? 'ui.speaking' : 'ui.listening')}</span></div>
+      <UserAvatar className="participant-avatar" name={name} avatar={isLocal ? avatar : null} />
+      <div className="participant-tile-bottom"><strong title={participant.identity}>{name}{isLocal && <small> {youLabel}</small>}</strong><span className="participant-status">{t(isMuted ? 'ui.micMuted' : isSpeaking ? 'ui.speaking' : 'ui.listening')}</span></div>
       {!isLocal && <ParticipantVolume identity={participant.identity} volume={volume} onChange={onVolumeChange} />}
     </div>
   );
@@ -220,12 +224,13 @@ function ParticipantRow({
   isMuted: boolean;
   youLabel: string;
 }) {
-  const initial = (participant.identity[0] ?? '?').toUpperCase();
+  const { state: auth, avatar } = useAuth();
+  const name = isLocal && auth.status === 'authed' ? auth.user.display_name || participant.identity : participant.identity;
   const t = useT();
   return (
     <div className={cn('participant-row', isSpeaking && !isMuted && 'speaking')}>
-      <span className="participant-row-avatar">{initial}</span>
-      <span className="participant-row-name">{participant.identity}{isLocal && <small> {youLabel}</small>}</span>
+      <UserAvatar className="participant-row-avatar" name={name} avatar={isLocal ? avatar : null} />
+      <span className="participant-row-name">{name}{isLocal && <small> {youLabel}</small>}</span>
       <span aria-label={t(isMuted ? 'ui.micMuted' : 'ui.micOn')}>{isMuted ? <MicOff size={13} /> : <Mic size={13} />}</span>
     </div>
   );

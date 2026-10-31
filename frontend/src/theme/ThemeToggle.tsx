@@ -1,3 +1,4 @@
+import { useAppearance } from '@/settings/useAppearance';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -9,16 +10,16 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useT } from '@/i18n/I18nProvider';
 import { Monitor, Moon, Sun } from 'lucide-react';
-import { type Theme, useTheme } from './ThemeProvider';
+import { type Theme } from './ThemeProvider';
 
 export function ThemeToggle() {
-	const { theme, resolved, setTheme } = useTheme();
+	const { theme, resolved, changeTheme, pending, error } = useAppearance();
 	const t = useT();
 
 	return (
-		<DropdownMenu>
+		<span className="relative inline-flex"><DropdownMenu>
 			<DropdownMenuTrigger asChild>
-				<Button
+				<Button disabled={pending}
 					variant="ghost"
 					size="icon-sm"
 					aria-label={t('settings.theme')}
@@ -35,7 +36,7 @@ export function ThemeToggle() {
 				<DropdownMenuLabel>{t('settings.theme')}</DropdownMenuLabel>
 				<DropdownMenuRadioGroup
 					value={theme}
-					onValueChange={(v) => setTheme(v as Theme)}
+					onValueChange={(v) => void changeTheme(v as Theme)}
 				>
 					<DropdownMenuRadioItem value="light">
 						<Sun className="h-3.5 w-3.5" />
@@ -51,6 +52,6 @@ export function ThemeToggle() {
 					</DropdownMenuRadioItem>
 				</DropdownMenuRadioGroup>
 			</DropdownMenuContent>
-		</DropdownMenu>
+		</DropdownMenu>{error && <span role="alert" className="appearance-save-error">{t('account.saveError')}</span>}</span>
 	);
 }

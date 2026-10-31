@@ -1,3 +1,4 @@
+import { useAppearance } from '@/settings/useAppearance';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -12,12 +13,13 @@ import { useI18n } from './I18nProvider';
 import { LOCALES, LOCALE_LABELS, type Locale } from './messages';
 
 export function LanguageSwitcher() {
-	const { locale, setLocale, t } = useI18n();
+	const { t } = useI18n();
+	const { locale, changeLocale, pending, error } = useAppearance();
 
 	return (
-		<DropdownMenu>
+		<span className="relative inline-flex"><DropdownMenu>
 			<DropdownMenuTrigger asChild>
-				<Button
+				<Button disabled={pending}
 					variant="ghost"
 					size="sm"
 					aria-label={t('settings.language')}
@@ -32,7 +34,7 @@ export function LanguageSwitcher() {
 				<DropdownMenuLabel>{t('settings.language')}</DropdownMenuLabel>
 				<DropdownMenuRadioGroup
 					value={locale}
-					onValueChange={(v) => setLocale(v as Locale)}
+					onValueChange={(v) => void changeLocale(v as Locale)}
 				>
 					{LOCALES.map((l) => (
 						<DropdownMenuRadioItem key={l} value={l}>
@@ -41,6 +43,6 @@ export function LanguageSwitcher() {
 					))}
 				</DropdownMenuRadioGroup>
 			</DropdownMenuContent>
-		</DropdownMenu>
+		</DropdownMenu>{error && <span role="alert" className="appearance-save-error">{t('account.saveError')}</span>}</span>
 	);
 }

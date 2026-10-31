@@ -43,7 +43,7 @@ export function AudioSettings({ call, open: controlledOpen, onOpenChange, showTr
   );
 }
 
-function AudioSettingsBody({ call }: { call?: CallAudioSettings }) {
+export function AudioSettingsBody({ call, embedded = false }: { call?: CallAudioSettings; embedded?: boolean }) {
   const t = useT();
   const [preferred, setPreferred] = useState(savedNoiseMode);
   const mode = call?.mode ?? preferred;
@@ -105,8 +105,8 @@ function AudioSettingsBody({ call }: { call?: CallAudioSettings }) {
     <>
       <header className="audio-header">
         <div className="audio-eyebrow">{t('audio.settings')}</div>
-        <DialogTitle className="audio-title">{t('audio.title')}</DialogTitle>
-        <DialogDescription className="audio-description">{t('audio.description')}</DialogDescription>
+        {embedded ? <h2 className="audio-title">{t('audio.title')}</h2> : <DialogTitle className="audio-title">{t('audio.title')}</DialogTitle>}
+        {embedded ? <p className="audio-description">{t('audio.description')}</p> : <DialogDescription className="audio-description">{t('audio.description')}</DialogDescription>}
       </header>
       <div className="audio-body">
         <section className="audio-section">
