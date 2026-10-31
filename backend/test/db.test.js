@@ -57,7 +57,7 @@ test('Drizzle migrations, backend query contracts, and repeated seeding', () => 
 		service.runMigrations();
 		assert.equal(
 			sqlite.prepare('SELECT count(*) AS n FROM __drizzle_migrations').get().n,
-			1,
+			2,
 		);
 		for (let i = 0; i < 2; i++) {
 			const result = spawnSync(process.execPath, ['backend/seed/seed.js'], {
